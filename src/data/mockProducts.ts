@@ -1,0 +1,295 @@
+export interface StorePrice {
+  storeName: 'Amazon' | 'Flipkart' | 'Croma' | 'Reliance Digital';
+  price: number;
+  originalPrice: number;
+  url: string;
+  inStock: boolean;
+  deliveryDays: number;
+}
+
+export interface PriceHistoryPoint {
+  date: string;
+  Amazon: number;
+  Flipkart: number;
+  Croma: number;
+  'Reliance Digital': number;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  category: string;
+  rating: number;
+  reviewsCount: number;
+  bestDealStore: 'Amazon' | 'Flipkart' | 'Croma' | 'Reliance Digital';
+  bestDealPrice: number;
+  prices: StorePrice[];
+  priceHistory: PriceHistoryPoint[];
+  aiRecommendation: {
+    decision: 'BUY NOW' | 'WAIT' | 'AVOID';
+    confidence: number; // 0 to 100
+    reasoning: string[];
+    summary: string;
+  };
+}
+
+export const mockProducts: Product[] = [
+  {
+    id: 'iphone-15-pro',
+    name: 'Apple iPhone 15 Pro (128GB, Natural Titanium)',
+    description: 'Experience the titanium design, A17 Pro chip, custom Action button, and a powerful 48MP camera system. Features Super Retina XDR display with ProMotion and advanced camera capabilities.',
+    image: '/images/iphone15pro.png',
+    category: 'Smartphones',
+    rating: 4.7,
+    reviewsCount: 1420,
+    bestDealStore: 'Flipkart',
+    bestDealPrice: 122900,
+    prices: [
+      {
+        storeName: 'Amazon',
+        price: 124900,
+        originalPrice: 134900,
+        url: 'https://amazon.in/dp/mock-iphone15',
+        inStock: true,
+        deliveryDays: 1,
+      },
+      {
+        storeName: 'Flipkart',
+        price: 122900,
+        originalPrice: 134900,
+        url: 'https://flipkart.com/mock-iphone15',
+        inStock: true,
+        deliveryDays: 2,
+      },
+      {
+        storeName: 'Croma',
+        price: 126900,
+        originalPrice: 134900,
+        url: 'https://croma.com/mock-iphone15',
+        inStock: true,
+        deliveryDays: 3,
+      },
+      {
+        storeName: 'Reliance Digital',
+        price: 125900,
+        originalPrice: 134900,
+        url: 'https://reliancedigital.in/mock-iphone15',
+        inStock: false,
+        deliveryDays: 5,
+      },
+    ],
+    priceHistory: [
+      { date: 'May 20', Amazon: 129900, Flipkart: 128900, Croma: 130900, 'Reliance Digital': 129900 },
+      { date: 'May 25', Amazon: 129900, Flipkart: 127500, Croma: 130900, 'Reliance Digital': 128900 },
+      { date: 'May 30', Amazon: 128000, Flipkart: 126900, Croma: 130900, 'Reliance Digital': 128900 },
+      { date: 'Jun 04', Amazon: 126900, Flipkart: 125000, Croma: 129900, 'Reliance Digital': 127900 },
+      { date: 'Jun 09', Amazon: 125900, Flipkart: 124900, Croma: 128000, 'Reliance Digital': 126900 },
+      { date: 'Jun 14', Amazon: 124900, Flipkart: 123500, Croma: 127900, 'Reliance Digital': 125900 },
+      { date: 'Jun 19', Amazon: 124900, Flipkart: 122900, Croma: 126900, 'Reliance Digital': 125900 },
+    ],
+    aiRecommendation: {
+      decision: 'BUY NOW',
+      confidence: 88,
+      summary: 'Current price on Flipkart is at an all-time low. Excellent window to purchase.',
+      reasoning: [
+        'Flipkart is offering an additional ₹2,000 instant discount making it ₹12,000 below launch price.',
+        'Historic price charts indicate this is the lowest price in the last 60 days.',
+        'Reliance Digital is currently out of stock, indicating high demand; inventory levels on other platforms are dwindling.'
+      ]
+    }
+  },
+  {
+    id: 'macbook-air-m3',
+    name: 'Apple MacBook Air M3 (13.6-inch, 8GB RAM, 256GB SSD)',
+    description: 'The M3 chip brings even greater capabilities to the superportable 13-inch MacBook Air. With up to 18 hours of battery life and a gorgeous Liquid Retina display, you can take it anywhere.',
+    image: '/images/macbookair.png',
+    category: 'Laptops',
+    rating: 4.8,
+    reviewsCount: 840,
+    bestDealStore: 'Amazon',
+    bestDealPrice: 104900,
+    prices: [
+      {
+        storeName: 'Amazon',
+        price: 104900,
+        originalPrice: 114900,
+        url: 'https://amazon.in/dp/mock-macbookm3',
+        inStock: true,
+        deliveryDays: 1,
+      },
+      {
+        storeName: 'Flipkart',
+        price: 109900,
+        originalPrice: 114900,
+        url: 'https://flipkart.com/mock-macbookm3',
+        inStock: true,
+        deliveryDays: 3,
+      },
+      {
+        storeName: 'Croma',
+        price: 107900,
+        originalPrice: 114900,
+        url: 'https://croma.com/mock-macbookm3',
+        inStock: true,
+        deliveryDays: 2,
+      },
+      {
+        storeName: 'Reliance Digital',
+        price: 108900,
+        originalPrice: 114900,
+        url: 'https://reliancedigital.in/mock-macbookm3',
+        inStock: true,
+        deliveryDays: 2,
+      },
+    ],
+    priceHistory: [
+      { date: 'May 20', Amazon: 112900, Flipkart: 113900, Croma: 112900, 'Reliance Digital': 113900 },
+      { date: 'May 25', Amazon: 111900, Flipkart: 113500, Croma: 111900, 'Reliance Digital': 112900 },
+      { date: 'May 30', Amazon: 109900, Flipkart: 112900, Croma: 110900, 'Reliance Digital': 111900 },
+      { date: 'Jun 04', Amazon: 108900, Flipkart: 111900, Croma: 109900, 'Reliance Digital': 110900 },
+      { date: 'Jun 09', Amazon: 106900, Flipkart: 109900, Croma: 108900, 'Reliance Digital': 109900 },
+      { date: 'Jun 14', Amazon: 105900, Flipkart: 109900, Croma: 107900, 'Reliance Digital': 108900 },
+      { date: 'Jun 19', Amazon: 104900, Flipkart: 109900, Croma: 107900, 'Reliance Digital': 108900 },
+    ],
+    aiRecommendation: {
+      decision: 'BUY NOW',
+      confidence: 94,
+      summary: 'Amazon is leading with a steep discount. Highly recommended to buy if you need it now.',
+      reasoning: [
+        'Amazon price represents a 9% direct discount off MSRP.',
+        'Stocks are abundant on Amazon with Next-Day Prime delivery available.',
+        'Next-gen M4 models are at least 6 months away, ensuring current tech longevity.'
+      ]
+    }
+  },
+  {
+    id: 'sony-wh-1000xm5',
+    name: 'Sony WH-1000XM5 Wireless Noise Cancelling Headphones',
+    description: 'The WH-1000XM5 headphones rewrite the rules for distraction-free listening. Two processors control 8 microphones for unprecedented noise cancelling and exceptional call quality.',
+    image: '/images/sonyheadphones.png',
+    category: 'Audio',
+    rating: 4.6,
+    reviewsCount: 3120,
+    bestDealStore: 'Croma',
+    bestDealPrice: 26999,
+    prices: [
+      {
+        storeName: 'Amazon',
+        price: 29990,
+        originalPrice: 34990,
+        url: 'https://amazon.in/dp/mock-sonywh5',
+        inStock: true,
+        deliveryDays: 2,
+      },
+      {
+        storeName: 'Flipkart',
+        price: 28999,
+        originalPrice: 34990,
+        url: 'https://flipkart.com/mock-sonywh5',
+        inStock: true,
+        deliveryDays: 4,
+      },
+      {
+        storeName: 'Croma',
+        price: 26999,
+        originalPrice: 34990,
+        url: 'https://croma.com/mock-sonywh5',
+        inStock: true,
+        deliveryDays: 2,
+      },
+      {
+        storeName: 'Reliance Digital',
+        price: 27999,
+        originalPrice: 34990,
+        url: 'https://reliancedigital.in/mock-sonywh5',
+        inStock: true,
+        deliveryDays: 3,
+      },
+    ],
+    priceHistory: [
+      { date: 'May 20', Amazon: 29990, Flipkart: 29999, Croma: 29999, 'Reliance Digital': 29999 },
+      { date: 'May 25', Amazon: 29990, Flipkart: 29500, Croma: 28999, 'Reliance Digital': 29500 },
+      { date: 'May 30', Amazon: 29990, Flipkart: 28999, Croma: 28499, 'Reliance Digital': 28999 },
+      { date: 'Jun 04', Amazon: 29990, Flipkart: 28999, Croma: 27999, 'Reliance Digital': 28499 },
+      { date: 'Jun 09', Amazon: 29990, Flipkart: 28999, Croma: 27499, 'Reliance Digital': 27999 },
+      { date: 'Jun 14', Amazon: 29990, Flipkart: 28999, Croma: 26999, 'Reliance Digital': 27999 },
+      { date: 'Jun 19', Amazon: 29990, Flipkart: 28999, Croma: 26999, 'Reliance Digital': 27999 },
+    ],
+    aiRecommendation: {
+      decision: 'BUY NOW',
+      confidence: 90,
+      summary: 'Croma is offering a superb local discount. Excellent deal value.',
+      reasoning: [
+        'Croma has slashed the price by ₹8,000, bringing it down to a very competitive price of ₹26,999.',
+        'It beats Amazon by nearly ₹3,000.',
+        'Strong recommendation to pick up from Croma stores or delivery.'
+      ]
+    }
+  },
+  {
+    id: 'samsung-galaxy-s24-ultra',
+    name: 'Samsung Galaxy S24 Ultra (256GB, Titanium Gray)',
+    description: 'Welcome to the era of mobile AI. With Galaxy S24 Ultra in your hands, you can unleash whole new levels of creativity, productivity and possibility. Equipped with a 200MP camera and built-in S Pen.',
+    image: '/images/samsunggalaxy.png',
+    category: 'Smartphones',
+    rating: 4.8,
+    reviewsCount: 980,
+    bestDealStore: 'Reliance Digital',
+    bestDealPrice: 119999,
+    prices: [
+      {
+        storeName: 'Amazon',
+        price: 124999,
+        originalPrice: 139999,
+        url: 'https://amazon.in/dp/mock-s24u',
+        inStock: true,
+        deliveryDays: 1,
+      },
+      {
+        storeName: 'Flipkart',
+        price: 123999,
+        originalPrice: 139999,
+        url: 'https://flipkart.com/mock-s24u',
+        inStock: true,
+        deliveryDays: 2,
+      },
+      {
+        storeName: 'Croma',
+        price: 121999,
+        originalPrice: 139999,
+        url: 'https://croma.com/mock-s24u',
+        inStock: true,
+        deliveryDays: 3,
+      },
+      {
+        storeName: 'Reliance Digital',
+        price: 119999,
+        originalPrice: 139999,
+        url: 'https://reliancedigital.in/mock-s24u',
+        inStock: true,
+        deliveryDays: 1,
+      },
+    ],
+    priceHistory: [
+      { date: 'May 20', Amazon: 129999, Flipkart: 129999, Croma: 129999, 'Reliance Digital': 129999 },
+      { date: 'May 25', Amazon: 129999, Flipkart: 128999, Croma: 127999, 'Reliance Digital': 127999 },
+      { date: 'May 30', Amazon: 128999, Flipkart: 126999, Croma: 125999, 'Reliance Digital': 125999 },
+      { date: 'Jun 04', Amazon: 127999, Flipkart: 125999, Croma: 124999, 'Reliance Digital': 124999 },
+      { date: 'Jun 09', Amazon: 126999, Flipkart: 124999, Croma: 123999, 'Reliance Digital': 122999 },
+      { date: 'Jun 14', Amazon: 125999, Flipkart: 123999, Croma: 122999, 'Reliance Digital': 120999 },
+      { date: 'Jun 19', Amazon: 124999, Flipkart: 123999, Croma: 121999, 'Reliance Digital': 119999 },
+    ],
+    aiRecommendation: {
+      decision: 'WAIT',
+      confidence: 72,
+      summary: 'Prices are on a steady decline. Waiting for another 1-2 weeks might yield better discounts.',
+      reasoning: [
+        'Price dropped by ₹2,000 this week alone on Reliance Digital.',
+        'An upcoming holiday sales event is projected to slash flagship Android prices by another 3-5%.',
+        'If you need it immediately, Reliance Digital at ₹119,999 is still a solid deal, but patience is advised.'
+      ]
+    }
+  }
+];
