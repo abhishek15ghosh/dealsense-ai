@@ -8,7 +8,6 @@ import { mockProducts } from '@/data/mockProducts';
 import DashboardLayout from '@/components/DashboardLayout';
 import { 
   Search, 
-  TrendingUp, 
   Heart, 
   Bell, 
   ArrowUpRight, 
@@ -18,7 +17,10 @@ import {
   Info,
   Sparkles,
   AlertCircle,
-  ArrowDown 
+  ArrowDown,
+  Activity,
+  Play,
+  CheckCircle2
 } from 'lucide-react';
 
 interface DashboardProduct {
@@ -139,6 +141,75 @@ export default function Dashboard() {
   const [insights, setInsights] = useState<InsightsData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [systemStatus, setSystemStatus] = useState<{
+    lastRunAt: string;
+    nextRunAt: string;
+    alertsChecked: number;
+    alertsTriggered: number;
+    emailsSent: number;
+    errorLogs: string[];
+  } | null>(null);
+  const [runningCheck, setRunningCheck] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Fetch scheduler status on mount
+  useEffect(() => {
+    let active = true;
+    fetch('/api/system/status')
+      .then((res) => res.json())
+      .then((resData) => {
+        if (!active) return;
+        if (resData.success && resData.data) {
+          setSystemStatus(resData.data);
+        }
+      })
+      .catch((err) => console.error('Error fetching system status:', err));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Handle toast timeout
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => {
+        setToastMessage(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
+
+  const handleRunPriceCheck = async () => {
+    setRunningCheck(true);
+    setToastMessage(null);
+    try {
+      const res = await fetch('/api/system/run-price-check', { method: 'POST' });
+      const resData = await res.json();
+      if (resData.success) {
+        setToastMessage({
+          type: 'success',
+          text: `Price check completed! Checked ${resData.data.alertsChecked} alerts, triggered ${resData.data.alertsTriggered}.`
+        });
+        
+        // Re-fetch system status
+        const statusRes = await fetch('/api/system/status');
+        const statusData = await statusRes.json();
+        if (statusData.success && statusData.data) {
+          setSystemStatus(statusData.data);
+        }
+      } else {
+        setToastMessage({ type: 'error', text: `Price check failed: ${resData.error}` });
+      }
+    } catch (err) {
+      setToastMessage({
+        type: 'error',
+        text: `Price check request failed: ${err instanceof Error ? err.message : String(err)}`
+      });
+    } finally {
+      setRunningCheck(false);
+    }
+  };
+
   useEffect(() => {
     let active = true;
 
@@ -192,7 +263,12 @@ export default function Dashboard() {
 
   // KPI Calculations
   const watchlistCount = watchlist.length;
-  const activeAlertsCount = alerts.filter((a) => !a.isTriggered).length;
+  const activeAlertsCount = alerts.filter((a) => {
+    const product = mockProducts.find(p => p.id === a.productId);
+    const currentPrice = a.currentPrice || (product ? product.bestDealPrice : a.currentPriceAtSet);
+    const isTriggered = a.status === 'triggered' || currentPrice <= a.targetPrice;
+    return a.status === 'active' && !isTriggered;
+  }).length;
 
   return (
     <DashboardLayout>
@@ -256,21 +332,111 @@ export default function Dashboard() {
             <p className="text-3xl font-display font-black text-slate-800">{activeAlertsCount}</p>
           </div>
           <div className="p-3 bg-amber-50 rounded-xl text-amber-600">
-            <Bell size={24} />
+            <AlertCircle size={24} />
           </div>
         </div>
 
         {/* Stat 4 */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Platforms Scanned</span>
-            <p className="text-3xl font-display font-black text-slate-800">4 Giants</p>
+            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Unread Notifications</span>
+            <p className="text-3xl font-display font-black text-slate-800">
+              {notifications.filter(n => n.isRead === false).length}
+            </p>
           </div>
           <div className="p-3 bg-purple-50 rounded-xl text-purple-600">
-            <TrendingUp size={24} />
+            <Bell size={24} />
           </div>
         </div>
       </div>
+
+      {/* Monitoring Engine Control Deck */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+              <Activity size={24} className={runningCheck ? "animate-pulse" : ""} />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <h3 className="font-display font-bold text-slate-800 text-sm">AI DealSense Monitoring Engine</h3>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1.5 animate-pulse" />
+                  Active
+                </span>
+              </div>
+              <p className="text-slate-400 text-[10px]">
+                Tracks prices automatically every 15 minutes, matches targets, alerts users, and dispatches dynamic emails.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-6 text-[10px] font-semibold text-slate-500">
+            <div className="space-y-1">
+              <span className="text-slate-400 font-bold block uppercase tracking-wider text-[9px]">Last Checked</span>
+              <span className="text-slate-750 font-black text-xs">
+                {systemStatus?.lastRunAt 
+                  ? new Date(systemStatus.lastRunAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) 
+                  : 'Never'}
+              </span>
+            </div>
+            <div className="space-y-1">
+              <span className="text-slate-400 font-bold block uppercase tracking-wider text-[9px]">Next Scheduled Check</span>
+              <span className="text-slate-750 font-black text-xs">
+                {systemStatus?.nextRunAt 
+                  ? new Date(systemStatus.nextRunAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) 
+                  : 'In 15 minutes'}
+              </span>
+            </div>
+            <div className="space-y-1">
+              <span className="text-slate-400 font-bold block uppercase tracking-wider text-[9px]">Alerts Checked</span>
+              <span className="text-slate-800 font-black text-xs">{systemStatus?.alertsChecked ?? 0}</span>
+            </div>
+            <div className="space-y-1">
+              <span className="text-slate-400 font-bold block uppercase tracking-wider text-[9px]">Alerts Triggered</span>
+              <span className="text-slate-800 font-black text-xs">{systemStatus?.alertsTriggered ?? 0}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleRunPriceCheck}
+            disabled={runningCheck}
+            className={`px-5 py-3 rounded-2xl text-xs font-bold text-white transition-all shadow-md shadow-blue-500/10 flex items-center space-x-2 ${
+              runningCheck 
+                ? 'bg-slate-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.98]'
+            }`}
+          >
+            {runningCheck ? (
+              <>
+                <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>
+                <span>Scanning Retailers...</span>
+              </>
+            ) : (
+              <>
+                <Play size={14} className="fill-current" />
+                <span>Run Price Check Now</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center space-x-3 px-4 py-3 rounded-2xl shadow-xl border text-xs font-semibold ${
+          toastMessage.type === 'success' 
+            ? 'bg-green-50 text-green-800 border-green-200' 
+            : 'bg-red-50 text-red-800 border-red-200'
+        }`}>
+          {toastMessage.type === 'success' ? (
+            <CheckCircle2 size={16} className="text-green-600 flex-shrink-0" />
+          ) : (
+            <AlertCircle size={16} className="text-red-600 flex-shrink-0" />
+          )}
+          <span>{toastMessage.text}</span>
+        </div>
+      )}
 
       {/* Main Grid split: AI Recommendations + Recent Drops */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

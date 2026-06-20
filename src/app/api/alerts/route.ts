@@ -2,19 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Alert from '@/models/Alert';
 import Product from '@/models/Product';
+import { getAuthUser } from '@/lib/auth';
 
 // GET: Fetch all alerts set by a user email
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const email = searchParams.get('email');
+    const tokenUser = await getAuthUser(request);
+    const resolvedEmail = tokenUser?.email || (searchParams.get('email') === 'demo@dealsense.ai' ? 'demo@dealsense.ai' : '');
 
-    if (!email) {
-      return NextResponse.json({ success: false, error: 'Email parameter is required' }, { status: 400 });
+    if (!resolvedEmail) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     await dbConnect();
-    const userAlerts = await Alert.find({ userEmail: email }).sort({ createdAt: -1 });
+    const userAlerts = await Alert.find({ userEmail: resolvedEmail }).sort({ createdAt: -1 });
 
     const ProductSource = (await import('@/models/ProductSource')).default;
     const Product = (await import('@/models/Product')).default;
@@ -65,6 +67,16 @@ export async function GET(request: NextRequest) {
             `${a.productName} is now ₹${latestPrice.toLocaleString('en-IN')} and has reached your target price of ₹${a.targetPrice.toLocaleString('en-IN')}.`,
             "alert_triggered"
           );
+
+          // Trigger email if not already sent
+          if (!a.emailSentAt) {
+            try {
+              const { sendPriceTargetReachedEmail } = await import('@/services/emailService');
+              await sendPriceTargetReachedEmail(a, latestPrice);
+            } catch (emailErr) {
+              console.error('Error sending alert email on GET check:', emailErr);
+            }
+          }
         } else if (status === 'active' && latestPrice !== a.currentPrice) {
           // Update current price of the alert in database
           a.currentPrice = latestPrice;
@@ -99,10 +111,16 @@ export async function GET(request: NextRequest) {
 // POST: Register a new price alert
 export async function POST(request: NextRequest) {
   try {
+    const tokenUser = await getAuthUser(request);
     const body = await request.json();
     const { email, productId, targetPrice, storeName } = body;
 
-    if (!email || !productId || !targetPrice || !storeName) {
+    const resolvedEmail = tokenUser?.email || (email === 'demo@dealsense.ai' ? 'demo@dealsense.ai' : '');
+    if (!resolvedEmail) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!productId || !targetPrice || !storeName) {
       return NextResponse.json({ success: false, error: 'Missing required parameters' }, { status: 400 });
     }
 
@@ -122,8 +140,8 @@ export async function POST(request: NextRequest) {
     const isTriggered = currentPrice <= Number(targetPrice);
 
     const newAlert = await Alert.create({
-      userEmail: email,
-      userId: email,
+      userEmail: resolvedEmail,
+      userId: resolvedEmail,
       productId,
       productName: product.name,
       productImage: product.image,
@@ -140,11 +158,19 @@ export async function POST(request: NextRequest) {
     if (isTriggered) {
       const { createNotification } = await import('@/services/notificationService');
       await createNotification(
-        email,
+        resolvedEmail,
         "Price Target Reached",
         `${product.name} is now ₹${currentPrice.toLocaleString('en-IN')} and has reached your target price of ₹${Number(targetPrice).toLocaleString('en-IN')}.`,
         "alert_triggered"
       );
+
+      // Trigger email alert
+      try {
+        const { sendPriceTargetReachedEmail } = await import('@/services/emailService');
+        await sendPriceTargetReachedEmail(newAlert, currentPrice);
+      } catch (emailErr) {
+        console.error('Error sending alert email on POST creation:', emailErr);
+      }
     }
 
     const formattedAlert = {
@@ -172,23 +198,34 @@ export async function POST(request: NextRequest) {
 // DELETE: Cancel/delete an alert by updating status to 'cancelled'
 export async function DELETE(request: NextRequest) {
   try {
+    const tokenUser = await getAuthUser(request);
     const { searchParams } = new URL(request.url);
+    const email = searchParams.get('email');
     const alertId = searchParams.get('id');
+
+    const resolvedEmail = tokenUser?.email || (email === 'demo@dealsense.ai' ? 'demo@dealsense.ai' : '');
+    if (!resolvedEmail) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
 
     if (!alertId) {
       return NextResponse.json({ success: false, error: 'Alert ID parameter is required' }, { status: 400 });
     }
 
     await dbConnect();
-    const updatedAlert = await Alert.findByIdAndUpdate(
-      alertId,
-      { status: 'cancelled' },
-      { new: true }
-    );
-
-    if (!updatedAlert) {
+    
+    // Find alert first to check ownership
+    const alert = await Alert.findById(alertId);
+    if (!alert) {
       return NextResponse.json({ success: false, error: 'Alert not found' }, { status: 404 });
     }
+
+    if (alert.userEmail !== resolvedEmail) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    alert.status = 'cancelled';
+    await alert.save();
 
     return NextResponse.json({ success: true, message: 'Alert cancelled successfully' }, { status: 200 });
   } catch (error) {

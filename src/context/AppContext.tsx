@@ -41,8 +41,8 @@ interface AppContextType {
   alerts: PriceAlert[];
   notifications: AppNotification[];
   isMounted: boolean;
-  login: (email: string, name?: string) => Promise<boolean>;
-  signup: (name: string, email: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   addToWatchlist: (productId: string) => void;
   removeFromWatchlist: (productId: string) => void;
@@ -105,64 +105,79 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Initialize and load from LocalStorage
+  const checkAuth = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      const resData = await res.json();
+      if (resData.success && resData.data) {
+        setUser({
+          name: resData.data.name,
+          email: resData.data.email,
+        });
+        return resData.data;
+      }
+    } catch (err) {
+      console.error('Error verifying auth:', err);
+    }
+    setUser(null);
+    return null;
+  }, []);
+
+  // Initialize and check Auth session
   useEffect(() => {
     const timer = setTimeout(() => {
-      setIsMounted(true);
-      
-      const storedUser = localStorage.getItem('dealsense_user');
-      if (storedUser) {
-        try {
-          setUser(JSON.parse(storedUser));
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
-      const storedWatchlist = localStorage.getItem('dealsense_watchlist');
-      if (storedWatchlist) {
-        try {
-          setWatchlist(JSON.parse(storedWatchlist));
-        } catch (e) {
-          console.error(e);
-        }
-      } else {
-        // Seed with default watchlist items for demo
-        setWatchlist(['iphone-15-pro', 'sony-wh-1000xm5']);
-      }
-
-      const storedAlerts = localStorage.getItem('dealsense_alerts');
-      if (storedAlerts) {
-        try {
-          setAlerts(JSON.parse(storedAlerts));
-        } catch (e) {
-          console.error(e);
-        }
-      } else {
-        // Seed default alert for demo
-        setAlerts([
-          {
-            id: 'alert-1',
-            productId: 'iphone-15-pro',
-            productName: 'Apple iPhone 15 Pro (128GB, Natural Titanium)',
-            productImage: '/images/iphone15pro.png',
-            targetPrice: 120000,
-            currentPriceAtSet: 124900,
-            isTriggered: false,
-            storeName: 'Flipkart',
-          }
-        ]);
-      }
-      
-      loadMockNotifications();
+      checkAuth().finally(() => {
+        setIsMounted(true);
+      });
     }, 0);
     return () => clearTimeout(timer);
-  }, [loadMockNotifications]);
+  }, [checkAuth]);
 
-  // Load notifications from API when mounted / user email changes
+  // Load user data when authenticated or changed
   useEffect(() => {
     if (!isMounted) return;
     const email = user?.email || 'demo@dealsense.ai';
+    
+    // 1. Fetch Watchlist
+    fetch(`/api/watchlist?email=${encodeURIComponent(email)}`)
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success && resData.data) {
+          setWatchlist(resData.data.map((item: { id: string }) => item.id));
+        } else {
+          setWatchlist(user ? [] : ['iphone-15-pro', 'sony-wh-1000xm5']);
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching watchlist:', err);
+        setWatchlist(user ? [] : ['iphone-15-pro', 'sony-wh-1000xm5']);
+      });
+
+    // 2. Fetch Alerts
+    fetch(`/api/alerts?email=${encodeURIComponent(email)}`)
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success && resData.data) {
+          const activeOrTriggered = resData.data.filter((a: PriceAlert) => a.status !== 'cancelled');
+          setAlerts(activeOrTriggered);
+        } else {
+          setAlerts(user ? [] : [
+            {
+              id: 'alert-1',
+              productId: 'iphone-15-pro',
+              productName: 'Apple iPhone 15 Pro (128GB, Natural Titanium)',
+              productImage: '/images/iphone15pro.png',
+              targetPrice: 120000,
+              currentPriceAtSet: 124900,
+              isTriggered: false,
+              storeName: 'Flipkart',
+            }
+          ]);
+        }
+      })
+      .catch(err => console.error('Error fetching alerts:', err));
+
+    // 3. Fetch Notifications
     fetch(`/api/notifications?email=${encodeURIComponent(email)}`)
       .then(res => res.json())
       .then(resData => {
@@ -188,37 +203,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         loadMockNotifications();
       });
   }, [user, isMounted, loadMockNotifications]);
-
-  // Sync state to LocalStorage
-  useEffect(() => {
-    if (!isMounted) return;
-    if (user) {
-      localStorage.setItem('dealsense_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('dealsense_user');
-    }
-  }, [user, isMounted]);
-
-  useEffect(() => {
-    if (!isMounted) return;
-    localStorage.setItem('dealsense_watchlist', JSON.stringify(watchlist));
-  }, [watchlist, isMounted]);
-
-  // Load alerts from API when mounted / user email changes
-  useEffect(() => {
-    if (!isMounted) return;
-    const email = user?.email || 'demo@dealsense.ai';
-    fetch(`/api/alerts?email=${encodeURIComponent(email)}`)
-      .then(res => res.json())
-      .then(resData => {
-        if (resData.success && resData.data) {
-          // Filter out alerts marked as cancelled
-          const activeOrTriggered = resData.data.filter((a: PriceAlert) => a.status !== 'cancelled');
-          setAlerts(activeOrTriggered);
-        }
-      })
-      .catch(err => console.error('Error fetching alerts:', err));
-  }, [user, isMounted]);
 
   // Notification Operations
   const addNotification = useCallback((title: string, message: string, type: AppNotification['type']) => {
@@ -308,61 +292,118 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   // Auth Operations
-  const login = useCallback(async (email: string, name?: string) => {
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    const matchedName = name || email.split('@')[0].replace('.', ' ');
-    const formattedName = matchedName.charAt(0).toUpperCase() + matchedName.slice(1);
-    
-    setUser({
-      name: formattedName,
-      email: email,
-    });
-    return true;
+  const login = useCallback(async (email: string, password: string) => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const resData = await res.json();
+      if (resData.success && resData.data) {
+        setUser({
+          name: resData.data.name,
+          email: resData.data.email
+        });
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Login error:', err);
+      return false;
+    }
   }, []);
 
-  const signup = useCallback(async (name: string, email: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setUser({
-      name,
-      email,
-    });
-    return true;
+  const signup = useCallback(async (name: string, email: string, password: string) => {
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+      const resData = await res.json();
+      if (resData.success && resData.data) {
+        setUser({
+          name: resData.data.name,
+          email: resData.data.email
+        });
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Signup error:', err);
+      return false;
+    }
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
+  const logout = useCallback(async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setUser(null);
+      setWatchlist([]);
+      setAlerts([]);
+      setNotifications([]);
+    }
   }, []);
 
   // Watchlist Operations
   const addToWatchlist = useCallback((productId: string) => {
-    setWatchlist((prev) => {
-      if (!prev.includes(productId)) {
-        const product = mockProducts.find((p) => p.id === productId);
-        if (product) {
-          addNotification(
-            'Added to Watchlist',
-            `"${product.name}" was added to your watchlist.`,
-            'success'
-          );
+    const email = user?.email || 'demo@dealsense.ai';
+    
+    // Call POST API
+    fetch('/api/watchlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, productId })
+    })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          setWatchlist((prev) => {
+            if (!prev.includes(productId)) {
+              return [...prev, productId];
+            }
+            return prev;
+          });
+          const product = mockProducts.find((p) => p.id === productId);
+          if (product) {
+            addNotification(
+              'Added to Watchlist',
+              `"${product.name}" was added to your watchlist.`,
+              'success'
+            );
+          }
         }
-        return [...prev, productId];
-      }
-      return prev;
-    });
-  }, [addNotification]);
+      })
+      .catch(err => console.error('Error adding to watchlist:', err));
+  }, [user, addNotification]);
 
   const removeFromWatchlist = useCallback((productId: string) => {
-    setWatchlist((prev) => prev.filter((id) => id !== productId));
-    const product = mockProducts.find((p) => p.id === productId);
-    if (product) {
-      addNotification(
-        'Removed from Watchlist',
-        `"${product.name}" was removed from your watchlist.`,
-        'info'
-      );
-    }
-  }, [addNotification]);
+    const email = user?.email || 'demo@dealsense.ai';
+    
+    // Call DELETE API
+    fetch(`/api/watchlist?email=${encodeURIComponent(email)}&productId=${productId}`, {
+      method: 'DELETE'
+    })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          setWatchlist((prev) => prev.filter((id) => id !== productId));
+          const product = mockProducts.find((p) => p.id === productId);
+          if (product) {
+            addNotification(
+              'Removed from Watchlist',
+              `"${product.name}" was removed from your watchlist.`,
+              'info'
+            );
+          }
+        }
+      })
+      .catch(err => console.error('Error removing from watchlist:', err));
+  }, [user, addNotification]);
 
   const isInWatchlist = useCallback((productId: string) => {
     return watchlist.includes(productId);

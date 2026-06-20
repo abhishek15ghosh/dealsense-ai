@@ -30,7 +30,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const success = await login(email);
+      const success = await login(email, password);
       if (success) {
         router.push('/dashboard');
       } else {
@@ -49,8 +49,13 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await login('demo@dealsense.ai', 'Demo Account');
-      router.push('/dashboard');
+      const success = await login('demo@dealsense.ai', 'demopass123');
+      if (success) {
+        router.push('/dashboard');
+      } else {
+        setError('Demo login failed.');
+        setLoading(false);
+      }
     } catch {
       setError('Demo login failed.');
       setLoading(false);

@@ -31,7 +31,7 @@ export default function SignupPage() {
     setError('');
     setLoading(true);
     try {
-      const success = await signup(name, email);
+      const success = await signup(name, email, password);
       if (success) {
         router.push('/dashboard');
       } else {

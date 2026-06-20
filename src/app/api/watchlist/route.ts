@@ -4,21 +4,23 @@ import Watchlist from '@/models/Watchlist';
 import Product from '@/models/Product';
 import ProductSource from '@/models/ProductSource';
 import PriceHistory from '@/models/PriceHistory';
+import { getAuthUser } from '@/lib/auth';
 
 // GET: Fetch all products watched by a specific user email
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const email = searchParams.get('email');
+    const tokenUser = await getAuthUser(request);
+    const resolvedEmail = tokenUser?.email || (searchParams.get('email') === 'demo@dealsense.ai' ? 'demo@dealsense.ai' : '');
 
-    if (!email) {
-      return NextResponse.json({ success: false, error: 'Email parameter is required' }, { status: 400 });
+    if (!resolvedEmail) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     await dbConnect();
     
     // Find all watchlist associations for this user
-    const watchlistDocs = await Watchlist.find({ userEmail: email });
+    const watchlistDocs = await Watchlist.find({ userEmail: resolvedEmail });
     const productIds = watchlistDocs.map((doc) => doc.productId);
 
     // Fetch full aggregated product details for each ID
@@ -81,11 +83,17 @@ export async function GET(request: NextRequest) {
 // POST: Add a product to a user's watchlist
 export async function POST(request: NextRequest) {
   try {
+    const tokenUser = await getAuthUser(request);
     const body = await request.json();
     const { email, productId } = body;
 
-    if (!email || !productId) {
-      return NextResponse.json({ success: false, error: 'Email and Product ID are required' }, { status: 400 });
+    const resolvedEmail = tokenUser?.email || (email === 'demo@dealsense.ai' ? 'demo@dealsense.ai' : '');
+    if (!resolvedEmail) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!productId) {
+      return NextResponse.json({ success: false, error: 'Product ID is required' }, { status: 400 });
     }
 
     await dbConnect();
@@ -99,7 +107,7 @@ export async function POST(request: NextRequest) {
     // Create unique composite watchlist entry
     try {
       await Watchlist.create({
-        userEmail: email,
+        userEmail: resolvedEmail,
         productId
       });
     } catch (e) {
@@ -121,16 +129,22 @@ export async function POST(request: NextRequest) {
 // DELETE: Remove product from watchlist
 export async function DELETE(request: NextRequest) {
   try {
+    const tokenUser = await getAuthUser(request);
     const { searchParams } = new URL(request.url);
     const email = searchParams.get('email');
     const productId = searchParams.get('productId');
 
-    if (!email || !productId) {
-      return NextResponse.json({ success: false, error: 'Email and Product ID are required' }, { status: 400 });
+    const resolvedEmail = tokenUser?.email || (email === 'demo@dealsense.ai' ? 'demo@dealsense.ai' : '');
+    if (!resolvedEmail) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!productId) {
+      return NextResponse.json({ success: false, error: 'Product ID is required' }, { status: 400 });
     }
 
     await dbConnect();
-    await Watchlist.findOneAndDelete({ userEmail: email, productId });
+    await Watchlist.findOneAndDelete({ userEmail: resolvedEmail, productId });
 
     return NextResponse.json({ success: true, message: 'Removed from watchlist' }, { status: 200 });
   } catch (error) {

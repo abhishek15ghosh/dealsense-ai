@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserNotifications } from '@/services/notificationService';
+import { getAuthUser } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const email = searchParams.get('email');
-    if (!email) {
-      return NextResponse.json({ success: false, error: 'Email parameter is required' }, { status: 400 });
+    const tokenUser = await getAuthUser(request);
+    const resolvedEmail = tokenUser?.email || (searchParams.get('email') === 'demo@dealsense.ai' ? 'demo@dealsense.ai' : '');
+
+    if (!resolvedEmail) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const notifications = await getUserNotifications(email);
+    const notifications = await getUserNotifications(resolvedEmail);
     
     return NextResponse.json({
       success: true,

@@ -15,6 +15,7 @@ export interface IAlert extends Document {
   platform?: string;
   createdAt: Date;
   triggeredAt?: Date;
+  emailSentAt?: Date;
 }
 
 const AlertSchema = new Schema<IAlert>({
@@ -31,7 +32,8 @@ const AlertSchema = new Schema<IAlert>({
   storeName: { type: String, required: true },
   platform: { type: String },
   createdAt: { type: Date, default: Date.now },
-  triggeredAt: { type: Date }
+  triggeredAt: { type: Date },
+  emailSentAt: { type: Date }
 });
 
 export default mongoose.models.Alert || mongoose.model<IAlert>('Alert', AlertSchema);

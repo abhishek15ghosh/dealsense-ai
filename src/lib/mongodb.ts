@@ -35,6 +35,14 @@ async function dbConnect() {
 
   try {
     cached.conn = await cached.promise;
+    
+    // Auto-initialize background price checking scheduler
+    try {
+      const { initScheduler } = await import('@/services/schedulerService');
+      initScheduler();
+    } catch (schedErr) {
+      console.error('Failed to auto-start background scheduler:', schedErr);
+    }
   } catch (e) {
     cached.promise = null;
     throw e;
