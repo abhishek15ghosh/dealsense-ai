@@ -6,6 +6,15 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'mock';
 const EMAIL_FROM = process.env.EMAIL_FROM || 'DealSense AI <onboarding@resend.dev>';
 
+// In production, validate configuration to prevent silent email failure
+if (EMAIL_PROVIDER === 'resend' && !RESEND_API_KEY) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('RESEND_API_KEY environment variable is missing for email provider "resend". Please configure RESEND_API_KEY in your production configuration.');
+  } else {
+    console.warn('Warning: EMAIL_PROVIDER is set to "resend" but RESEND_API_KEY is missing. Falling back to mock mode for development.');
+  }
+}
+
 export interface SendEmailOptions {
   to: string;
   subject: string;

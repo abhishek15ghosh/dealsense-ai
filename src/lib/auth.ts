@@ -2,7 +2,8 @@ import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dealsense_secret_key_12345';
+const JWT_SECRET = process.env.JWT_SECRET;
+const ACTUAL_JWT_SECRET = JWT_SECRET || 'dealsense_secret_key_12345';
 export const TOKEN_COOKIE_NAME = 'dealsense_token';
 
 export interface TokenPayload {
@@ -12,12 +13,18 @@ export interface TokenPayload {
 }
 
 export function signToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable is missing. Please set JWT_SECRET in your production configuration.');
+  }
+  return jwt.sign(payload, ACTUAL_JWT_SECRET, { expiresIn: '7d' });
 }
 
 export function verifyToken(token: string): TokenPayload | null {
+  if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable is missing. Please set JWT_SECRET in your production configuration.');
+  }
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
+    return jwt.verify(token, ACTUAL_JWT_SECRET) as TokenPayload;
   } catch {
     return null;
   }

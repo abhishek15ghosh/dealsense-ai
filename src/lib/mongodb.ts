@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/dealsense';
+const MONGODB_URI = process.env.MONGODB_URI;
+const connectionString = MONGODB_URI || 'mongodb://localhost:27017/dealsense';
 
 // Extend the NodeJS global type to store a cached mongoose connection
 interface GlobalMongoose {
@@ -19,6 +20,10 @@ if (!globalThis.mongooseCached) {
 const cached = globalThis.mongooseCached;
 
 async function dbConnect() {
+  if (!process.env.MONGODB_URI && process.env.NODE_ENV === 'production') {
+    throw new Error('MONGODB_URI environment variable is missing. Please set MONGODB_URI in your production configuration.');
+  }
+
   if (cached.conn) {
     return cached.conn;
   }
@@ -28,7 +33,7 @@ async function dbConnect() {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongooseInstance) => {
+    cached.promise = mongoose.connect(connectionString, opts).then((mongooseInstance) => {
       return mongooseInstance;
     });
   }
@@ -45,7 +50,8 @@ async function dbConnect() {
     }
   } catch (e) {
     cached.promise = null;
-    throw e;
+    console.error('Database connection failed:', e);
+    throw new Error(`Database connection failed: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   return cached.conn;
