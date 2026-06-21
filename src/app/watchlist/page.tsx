@@ -1,32 +1,64 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import { mockProducts } from '@/data/mockProducts';
 import DashboardLayout from '@/components/DashboardLayout';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, Search, ChevronRight, Star, Trash2 } from 'lucide-react';
+import { Product } from '@/data/mockProducts';
 
 export default function WatchlistPage() {
-  const { watchlist, removeFromWatchlist } = useApp();
+  const { watchlist, removeFromWatchlist, user } = useApp();
+  const [watchedProducts, setWatchedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Resolve watched products details
-  const watchedProducts = mockProducts.filter((p) => watchlist.includes(p.id));
+  useEffect(() => {
+    let active = true;
+    const email = user?.email || 'demo@dealsense.ai';
+
+    fetch(`/api/watchlist?email=${encodeURIComponent(email)}`)
+      .then((res) => res.json())
+      .then((resData) => {
+        if (active) {
+          if (resData.success && resData.data) {
+            setWatchedProducts(resData.data);
+          } else {
+            setWatchedProducts([]);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('Error loading watchlist products:', err);
+        if (active) setWatchedProducts([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user, watchlist]);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-display font-black text-slate-800 tracking-tight">
-            Your Watchlist
+            Your Watchlist ({watchedProducts.length})
           </h2>
           <p className="text-slate-500 text-xs mt-0.5">
             Monitor real-time drops on items you are planning to purchase
           </p>
         </div>
 
-        {watchedProducts.length === 0 ? (
+        {loading ? (
+          <div className="flex h-96 items-center justify-center text-slate-400 font-semibold space-x-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span>Loading watchlist...</span>
+          </div>
+        ) : watchedProducts.length === 0 ? (
           <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center space-y-4 max-w-xl mx-auto shadow-sm">
             <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
               <Heart size={20} />
@@ -46,10 +78,10 @@ export default function WatchlistPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {watchedProducts.map((product) => {
-              const original = product.prices[0].originalPrice;
+              const original = product.prices?.[0]?.originalPrice || product.bestDealPrice;
               const current = product.bestDealPrice;
               const saving = original - current;
-              const pct = Math.round((saving / original) * 100);
+              const pct = original > 0 ? Math.round((saving / original) * 100) : 0;
 
               return (
                 <div 

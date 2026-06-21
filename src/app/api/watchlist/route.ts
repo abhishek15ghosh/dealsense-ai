@@ -5,6 +5,7 @@ import Product from '@/models/Product';
 import ProductSource from '@/models/ProductSource';
 import PriceHistory from '@/models/PriceHistory';
 import { getAuthUser } from '@/lib/auth';
+import { mockProducts } from '@/data/mockProducts';
 
 // GET: Fetch all products watched by a specific user email
 export async function GET(request: NextRequest) {
@@ -27,7 +28,56 @@ export async function GET(request: NextRequest) {
     const watchedProducts = await Promise.all(
       productIds.map(async (id) => {
         const doc = await Product.findOne({ customId: id });
-        if (!doc) return null;
+        
+        if (!doc) {
+          // Fallback 1: Match static mock products
+          const mock = mockProducts.find((p) => p.id === id);
+          if (mock) {
+            return {
+              id: mock.id,
+              name: mock.name,
+              description: mock.description,
+              image: mock.image,
+              category: mock.category,
+              rating: mock.rating,
+              reviewsCount: mock.reviewsCount,
+              bestDealStore: mock.bestDealStore,
+              bestDealPrice: mock.bestDealPrice,
+              prices: mock.prices,
+              priceHistory: mock.priceHistory,
+              aiRecommendation: mock.aiRecommendation
+            };
+          }
+
+          // Fallback 2: Generate dynamic info based on customId
+          const fallbackName = id.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          return {
+            id,
+            name: fallbackName,
+            description: `Compare prices for ${fallbackName}.`,
+            image: `/images/${id}.png`,
+            category: 'Gadgets',
+            rating: 4.5,
+            reviewsCount: 10,
+            bestDealStore: 'Amazon' as const,
+            bestDealPrice: 0,
+            prices: [{
+              storeName: 'Amazon' as const,
+              price: 0,
+              originalPrice: 0,
+              url: '#',
+              inStock: true,
+              deliveryDays: 3
+            }],
+            priceHistory: [],
+            aiRecommendation: {
+              decision: 'WAIT' as const,
+              confidence: 50,
+              reasoning: ['Product data is currently being populated.'],
+              summary: 'Product detail page is indexing.'
+            }
+          };
+        }
 
         const sources = await ProductSource.find({ productId: id });
         const history = await PriceHistory.find({ productId: id });
