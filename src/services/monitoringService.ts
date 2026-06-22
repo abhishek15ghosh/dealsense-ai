@@ -1,12 +1,13 @@
 import dbConnect from '@/lib/mongodb';
 import Watchlist from '@/models/Watchlist';
 import Product from '@/models/Product';
+import ProductSource from '@/models/ProductSource';
 import PriceHistory from '@/models/PriceHistory';
 import Alert from '@/models/Alert';
-import { searchProductSources } from '@/services/productSources';
+import { fetchPriceForRetailer } from '@/services/retailerPriceService';
 
 export async function runPriceMonitoringEngine() {
-  console.log('[Monitoring Engine] Running price monitoring checks...');
+  console.log('[Monitoring Engine] Running real price monitoring checks...');
   await dbConnect();
 
   // 1. Read all watchlist items
@@ -23,44 +24,87 @@ export async function runPriceMonitoringEngine() {
   for (const productId of uniqueProductIds) {
     try {
       const productDoc = await Product.findOne({ customId: productId });
-      const productName = productDoc ? productDoc.name : productId.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-
-      // Find the last recorded price for this product from flat history records first
-      const lastHistory = await PriceHistory.findOne({ productId, price: { $gt: 0 } }).sort({ timestamp: -1, _id: -1 });
-      const oldPrice = lastHistory && lastHistory.price ? lastHistory.price : (productDoc ? productDoc.bestDealPrice : 0);
-
-      // Fetch latest price from crawlers
-      const searchName = productDoc ? productDoc.name : productName;
-      const listings = await searchProductSources(searchName);
       
-      const relevantListings = listings.filter((listing) => {
-        const titleLower = listing.title.toLowerCase();
-        const idLower = productId.toLowerCase();
-        const cleanId = idLower.replace(/-/g, ' ');
-        const nameLower = productDoc ? productDoc.name.toLowerCase() : '';
-        return (
-          titleLower.includes(idLower) ||
-          idLower.includes(titleLower) ||
-          titleLower.includes(cleanId) ||
-          (nameLower !== '' && (titleLower.includes(nameLower) || nameLower.includes(titleLower)))
-        );
+      // Fetch active ProductSource records for this product
+      let sources = await ProductSource.find({ productId, active: true });
+      
+      // Auto-seed default Amazon mock ProductSource record if none exists
+      if (sources.length === 0) {
+        console.log(`[Monitoring Engine] Seeding default active ProductSource for ${productId}`);
+        const defaultTitle = productDoc ? productDoc.name : productId.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        const defaultBestPrice = productDoc ? productDoc.bestDealPrice || 49999 : 49999;
+        
+        const newSource = await ProductSource.create({
+          productId,
+          title: defaultTitle,
+          brand: productDoc ? productDoc.brand || 'Brand' : 'Brand',
+          category: productDoc ? productDoc.category || 'Gadgets' : 'Gadgets',
+          image: productDoc ? productDoc.image || `/images/${productId}.png` : `/images/${productId}.png`,
+          currentPrice: defaultBestPrice,
+          originalPrice: productDoc ? (productDoc.originalPrice || defaultBestPrice * 1.15) : defaultBestPrice * 1.15,
+          platform: 'Amazon',
+          retailer: 'Amazon',
+          productUrl: `https://www.amazon.in/dp/mock-${productId}`,
+          availability: 'In Stock',
+          lastChecked: new Date(),
+          active: true,
+          status: 'Success'
+        });
+        sources = [newSource];
+      }
+
+      // Loop through all active sources and update their prices
+      const fetchPromises = sources.map(async (source) => {
+        try {
+          const result = await fetchPriceForRetailer(source.retailer || source.platform, source.productUrl);
+          
+          if (result.success) {
+            source.currentPrice = result.price;
+            if (result.title && result.title !== 'Unknown Amazon Product') {
+              source.title = result.title;
+            }
+            source.status = 'Success';
+            source.availability = 'In Stock';
+          } else {
+            source.status = 'Failed';
+            console.warn(`[Monitoring Engine] Fetch failed for ${source.retailer} URL ${source.productUrl}: ${result.error}`);
+          }
+          source.lastChecked = new Date();
+          await source.save();
+          return source;
+        } catch (fetchErr) {
+          console.error(`[Monitoring Engine] Failed to fetch price for source ${source._id}:`, fetchErr);
+          source.status = 'Failed';
+          source.lastChecked = new Date();
+          await source.save();
+          return source;
+        }
       });
 
-      if (relevantListings.length === 0) {
-        console.log(`[Monitoring Engine] No listings found for ${productId}.`);
+      await Promise.all(fetchPromises);
+
+      // Reload successfully updated sources to find the best deal
+      const successfulSources = await ProductSource.find({ productId, active: true, status: 'Success' });
+      if (successfulSources.length === 0) {
+        console.log(`[Monitoring Engine] No successful sources found for ${productId}. Skipping alerts.`);
         continue;
       }
 
       // Find the best platform and price
-      let bestListing = relevantListings[0];
-      for (const listing of relevantListings) {
-        if (listing.currentPrice < bestListing.currentPrice) {
-          bestListing = listing;
+      let bestSource = successfulSources[0];
+      for (const source of successfulSources) {
+        if (source.currentPrice < bestSource.currentPrice) {
+          bestSource = source;
         }
       }
 
-      const newPrice = bestListing.currentPrice;
-      const retailer = bestListing.platform;
+      const newPrice = bestSource.currentPrice;
+      const retailer = bestSource.retailer || bestSource.platform;
+      const productName = productDoc ? productDoc.name : (bestSource.title || productId);
+
+      // Find the last recorded price for this product from flat history records first
+      const lastHistory = await PriceHistory.findOne({ productId, price: { $gt: 0 } }).sort({ timestamp: -1, _id: -1 });
+      const oldPrice = lastHistory && lastHistory.price ? lastHistory.price : (productDoc ? productDoc.bestDealPrice : 0);
 
       console.log(`[Monitoring Engine] Product: ${productId}, Old Price: ₹${oldPrice}, New Price: ₹${newPrice} on ${retailer}`);
 
@@ -87,7 +131,7 @@ export async function runPriceMonitoringEngine() {
       // If price drops:
       if (oldPrice > 0 && newPrice < oldPrice) {
         const savings = oldPrice - newPrice;
-        console.log(`[Monitoring Engine] Price drop detected! Savings: ₹${savings}`);
+        console.log(`[Monitoring Engine] Price drop detected for ${productId}! Savings: ₹${savings}`);
 
         // Find all watchers of this product
         const watchers = watchlistItems.filter((w) => w.productId === productId);

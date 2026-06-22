@@ -30,6 +30,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { name: 'Product Search', href: '/search', icon: Search },
     { name: 'Watchlist', href: '/watchlist', icon: Heart },
     { name: 'Price Alerts', href: '/alerts', icon: Bell },
+    { name: 'Admin Verification', href: '/admin/verification', icon: UserIcon },
   ];
 
   const handleLogout = () => {
