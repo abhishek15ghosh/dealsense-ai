@@ -9,20 +9,33 @@ import Image from 'next/image';
 import { Bell, Search, Trash2, CheckCircle2, AlertCircle, ArrowUpRight } from 'lucide-react';
 
 export default function AlertsPage() {
-  const { alerts, removeAlert } = useApp();
+  const { alerts, removeAlert, markAllAlertsAsRead } = useApp();
+
+  // Automatically mark all alerts as read when visiting the alerts page
+  React.useEffect(() => {
+    if (markAllAlertsAsRead) {
+      markAllAlertsAsRead();
+    }
+  }, [markAllAlertsAsRead]);
 
   // Separate active and triggered alerts
   const activeAlerts = alerts.filter(a => {
+    // Price drop alerts are considered already triggered
+    if (a.oldPrice !== undefined) return false;
+
     const product = mockProducts.find(p => p.id === a.productId);
     const currentPrice = a.currentPrice || (product ? product.bestDealPrice : a.currentPriceAtSet);
-    const isTriggered = a.status === 'triggered' || currentPrice <= a.targetPrice;
+    const isTriggered = a.status === 'triggered' || (a.targetPrice !== undefined && currentPrice <= a.targetPrice);
     return a.status === 'active' && !isTriggered;
   });
   
   const triggeredAlerts = alerts.filter(a => {
+    // Price drop alerts are triggered
+    if (a.oldPrice !== undefined) return true;
+
     const product = mockProducts.find(p => p.id === a.productId);
     const currentPrice = a.currentPrice || (product ? product.bestDealPrice : a.currentPriceAtSet);
-    const isTriggered = a.status === 'triggered' || currentPrice <= a.targetPrice;
+    const isTriggered = a.status === 'triggered' || (a.targetPrice !== undefined && currentPrice <= a.targetPrice);
     return a.status === 'triggered' || (a.status === 'active' && isTriggered);
   });
 
@@ -31,11 +44,14 @@ export default function AlertsPage() {
     const product = mockProducts.find(p => p.id === alert.productId);
     const currentPrice = alert.currentPrice || (product ? product.bestDealPrice : alert.currentPriceAtSet);
 
+    const isPriceDropAlert = alert.oldPrice !== undefined;
+    const resolvedImage = alert.productImage || (product ? product.image : `/images/${alert.productId}.png`);
+
     return (
       <div 
         key={alert.id}
         className={`bg-white border rounded-3xl p-5 shadow-sm transition duration-200 flex flex-col justify-between space-y-4 hover:shadow-md ${
-          isTriggered 
+          isTriggered || isPriceDropAlert
             ? 'border-green-200/80 bg-green-50/5' 
             : 'border-slate-200'
         }`}
@@ -44,15 +60,15 @@ export default function AlertsPage() {
           {/* Header */}
           <div className="flex justify-between items-center">
             <span className="text-[9px] font-extrabold uppercase text-slate-400">
-              Platform: {alert.storeName}
+              {isPriceDropAlert ? `Retailer: ${alert.storeName || 'General'}` : `Platform: ${alert.storeName}`}
             </span>
             <span className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg text-[9px] font-bold ${
-              isTriggered
+              isTriggered || isPriceDropAlert
                 ? 'bg-green-50 text-green-700 border border-green-100'
                 : 'bg-blue-50 text-blue-700 border border-blue-100'
             }`}>
-              {isTriggered ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
-              <span>{isTriggered ? 'Triggered' : 'Monitoring'}</span>
+              {isTriggered || isPriceDropAlert ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
+              <span>{isPriceDropAlert ? 'Price Drop' : isTriggered ? 'Triggered' : 'Monitoring'}</span>
             </span>
           </div>
 
@@ -60,7 +76,7 @@ export default function AlertsPage() {
           <div className="flex items-center space-x-4">
             <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 p-2 flex items-center justify-center flex-shrink-0">
               <Image 
-                src={alert.productImage} 
+                src={resolvedImage} 
                 alt={alert.productName} 
                 width={48}
                 height={48}
@@ -75,21 +91,44 @@ export default function AlertsPage() {
             </Link>
           </div>
 
-          {/* Threshold Matrix */}
-          <div className="border-t border-slate-100 pt-3 grid grid-cols-2 gap-4 text-xs font-semibold">
-            <div className="space-y-0.5">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Target Limit</span>
-              <p className="text-slate-800 font-bold">
-                ₹{alert.targetPrice.toLocaleString('en-IN')}
-              </p>
+          {/* Threshold Matrix / Price Info */}
+          {isPriceDropAlert ? (
+            <div className="border-t border-slate-100 pt-3 grid grid-cols-3 gap-2 text-xs font-semibold">
+              <div className="space-y-0.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Old Price</span>
+                <p className="text-slate-500 line-through">
+                  ₹{alert.oldPrice?.toLocaleString('en-IN')}
+                </p>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">New Price</span>
+                <p className="text-green-600 font-extrabold">
+                  ₹{alert.newPrice?.toLocaleString('en-IN')}
+                </p>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Savings</span>
+                <p className="text-blue-650 font-black">
+                  ₹{alert.savings?.toLocaleString('en-IN')}
+                </p>
+              </div>
             </div>
-            <div className="space-y-0.5">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Current Price</span>
-              <p className={`font-bold ${isTriggered ? 'text-green-600 font-extrabold' : 'text-slate-700'}`}>
-                ₹{currentPrice.toLocaleString('en-IN')}
-              </p>
+          ) : (
+            <div className="border-t border-slate-100 pt-3 grid grid-cols-2 gap-4 text-xs font-semibold">
+              <div className="space-y-0.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Target Limit</span>
+                <p className="text-slate-800 font-bold">
+                  ₹{alert.targetPrice.toLocaleString('en-IN')}
+                </p>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Current Price</span>
+                <p className={`font-bold ${isTriggered ? 'text-green-600 font-extrabold' : 'text-slate-700'}`}>
+                  ₹{currentPrice.toLocaleString('en-IN')}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Buttons */}

@@ -85,6 +85,10 @@ export async function sendWelcomeEmail(email: string, name: string): Promise<boo
 
 export async function sendPriceTargetReachedEmail(alert: IAlert, currentPrice: number): Promise<boolean> {
   try {
+    if (!alert.userEmail) {
+      console.log(`[EMAIL BYPASSED] Alert ${alert._id} has no userEmail defined.`);
+      return false;
+    }
     await dbConnect();
     // 1. Fetch user to check preference
     const user = await User.findOne({ email: alert.userEmail });
@@ -112,8 +116,8 @@ export async function sendPriceTargetReachedEmail(alert: IAlert, currentPrice: n
             <td style="padding: 8px 0; color: #0f172a;">${alert.storeName}</td>
           </tr>
           <tr>
-            <td style="padding: 8px 0; font-weight: bold; color: #475569;">Target Price:</td>
-            <td style="padding: 8px 0; color: #0f172a; font-weight: bold;">₹${alert.targetPrice.toLocaleString('en-IN')}</td>
+             <td style="padding: 8px 0; font-weight: bold; color: #475569;">Target Price:</td>
+             <td style="padding: 8px 0; color: #0f172a; font-weight: bold;">₹${(alert.targetPrice ?? 0).toLocaleString('en-IN')}</td>
           </tr>
           <tr>
             <td style="padding: 8px 0; font-weight: bold; color: #475569;">Current Price:</td>

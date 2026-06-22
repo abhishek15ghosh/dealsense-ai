@@ -339,9 +339,9 @@ export default function Dashboard() {
         {/* Stat 4 */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Unread Notifications</span>
+            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Unread Alerts</span>
             <p className="text-3xl font-display font-black text-slate-800">
-              {notifications.filter(n => n.isRead === false).length}
+              {alerts.filter(a => a.read === false).length}
             </p>
           </div>
           <div className="p-3 bg-purple-50 rounded-xl text-purple-600">

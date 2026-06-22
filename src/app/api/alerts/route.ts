@@ -95,7 +95,11 @@ export async function GET(request: NextRequest) {
           status,
           storeName: a.storeName,
           createdAt: a.createdAt,
-          triggeredAt
+          triggeredAt,
+          oldPrice: a.oldPrice,
+          newPrice: a.newPrice,
+          savings: a.savings,
+          read: a.read ?? false
         };
       })
     );

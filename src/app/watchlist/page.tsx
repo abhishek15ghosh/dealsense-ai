@@ -10,7 +10,7 @@ import { Product } from '@/data/mockProducts';
 
 export default function WatchlistPage() {
   const { watchlist, removeFromWatchlist, user } = useApp();
-  const [watchedProducts, setWatchedProducts] = useState<Product[]>([]);
+  const [watchedProducts, setWatchedProducts] = useState<(Product & { latestTrackedPrice?: number | null })[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -126,6 +126,11 @@ export default function WatchlistPage() {
                         <span className="font-display font-black text-base text-slate-800">
                           ₹{current.toLocaleString('en-IN')}
                         </span>
+                        {product.latestTrackedPrice !== undefined && product.latestTrackedPrice !== null && (
+                          <div className="text-[9px] text-slate-500 font-bold mt-0.5">
+                            Tracked: <span className="text-blue-650 font-black">₹{product.latestTrackedPrice.toLocaleString('en-IN')}</span>
+                          </div>
+                        )}
                       </div>
                       <div className="text-right">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Est. Savings</span>

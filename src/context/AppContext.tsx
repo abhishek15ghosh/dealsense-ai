@@ -21,6 +21,10 @@ export interface PriceAlert {
   storeName: string;
   createdAt?: string;
   triggeredAt?: string;
+  oldPrice?: number;
+  newPrice?: number;
+  savings?: number;
+  read?: boolean;
 }
 
 export interface AppNotification {
@@ -53,6 +57,8 @@ interface AppContextType {
   addNotification: (title: string, message: string, type: AppNotification['type']) => void;
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
+  markAllAlertsAsRead: () => void;
+  markAlertAsRead: (alertId: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -291,6 +297,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  const markAllAlertsAsRead = useCallback(() => {
+    setAlerts((prev) => prev.map((a) => ({ ...a, read: true })));
+
+    const email = user?.email || 'demo@dealsense.ai';
+    fetch('/api/alerts/read-all', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email })
+    })
+      .then(res => res.json())
+      .catch(err => console.error('Error marking all alerts as read:', err));
+  }, [user]);
+
+  const markAlertAsRead = useCallback((alertId: string) => {
+    setAlerts((prev) =>
+      prev.map((a) => (a.id === alertId ? { ...a, read: true } : a))
+    );
+
+    fetch('/api/alerts/read', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ alertId })
+    })
+      .then(res => res.json())
+      .catch(err => console.error('Error marking alert as read:', err));
+  }, []);
+
   // Auth Operations
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -502,6 +539,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addNotification,
         markAsRead,
         markAllAsRead,
+        markAllAlertsAsRead,
+        markAlertAsRead,
       }}
     >
       {children}

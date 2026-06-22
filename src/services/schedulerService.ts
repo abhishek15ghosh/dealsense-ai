@@ -17,6 +17,18 @@ export async function runScheduledPriceCheck(): Promise<TrackingStats> {
     // Execute the core product price tracking scan and alert evaluation
     const stats = await trackProductPrices();
     
+    // Run the new price monitoring engine as well
+    try {
+      const { runPriceMonitoringEngine } = await import('@/services/monitoringService');
+      const monitoringResult = await runPriceMonitoringEngine();
+      console.log('[Scheduler] Price Monitoring Engine result:', monitoringResult);
+      stats.alertsChecked += monitoringResult.checked;
+      stats.alertsTriggered += monitoringResult.alertsCreated;
+    } catch (monErr) {
+      console.error('[Scheduler] Price Monitoring Engine failed:', monErr);
+      stats.errors.push(`Price monitoring failed: ${monErr instanceof Error ? monErr.message : String(monErr)}`);
+    }
+    
     // Find or create single SystemStatus config doc
     let statusDoc = await SystemStatus.findOne({});
     if (!statusDoc) {

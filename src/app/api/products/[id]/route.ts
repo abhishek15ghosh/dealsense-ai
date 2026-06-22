@@ -16,6 +16,37 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // Query core product details
     const doc = await Product.findOne({ customId: id });
     if (!doc) {
+      if (process.env.NODE_ENV !== 'production') {
+        const { mockProducts } = await import('@/data/mockProducts');
+        const mock = mockProducts.find((p) => p.id === id);
+        if (mock) {
+          const fullProduct = {
+            id: mock.id,
+            name: mock.name,
+            description: mock.description,
+            image: mock.image,
+            category: mock.category,
+            rating: mock.rating,
+            reviewsCount: mock.reviewsCount,
+            bestDealStore: mock.bestDealStore,
+            bestDealPrice: mock.bestDealPrice,
+            lowestRecordedPrice: mock.bestDealPrice,
+            highestRecordedPrice: mock.prices[0]?.originalPrice || mock.bestDealPrice * 1.15,
+            priceTrend: 'stable',
+            prices: mock.prices.map((s) => ({
+              storeName: s.storeName,
+              price: s.price,
+              originalPrice: s.originalPrice,
+              url: s.url,
+              inStock: s.inStock,
+              deliveryDays: s.deliveryDays
+            })),
+            priceHistory: mock.priceHistory,
+            aiRecommendation: mock.aiRecommendation
+          };
+          return NextResponse.json({ success: true, data: fullProduct }, { status: 200 });
+        }
+      }
       return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
     }
 

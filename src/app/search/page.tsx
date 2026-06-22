@@ -11,6 +11,7 @@ import {
   Star, 
   ChevronRight
 } from 'lucide-react';
+import { useApp } from '@/context/AppContext';
 
 interface SearchContentProps {
   queryParam: string;
@@ -52,6 +53,7 @@ interface Product {
 
 function SearchContent({ queryParam }: SearchContentProps) {
   const router = useRouter();
+  const { addToWatchlist, removeFromWatchlist, isInWatchlist } = useApp();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +92,7 @@ function SearchContent({ queryParam }: SearchContentProps) {
       if (active) setLoading(true);
     }, 0);
 
-    fetch(`/api/products?q=${encodeURIComponent(queryParam)}`)
+    fetch(`/api/products/search?q=${encodeURIComponent(queryParam)}`)
       .then((res) => {
         if (!res.ok) {
           throw new Error(`Failed to load: ${res.statusText}`);
@@ -362,7 +364,7 @@ function SearchContent({ queryParam }: SearchContentProps) {
                     </div>
 
                     {/* Footer bar */}
-                    <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs font-bold">
+                    <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs font-bold gap-3 flex-wrap">
                       <div className="space-y-0.5">
                         <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Best Deal</span>
                         <p className="text-slate-700">
@@ -370,13 +372,30 @@ function SearchContent({ queryParam }: SearchContentProps) {
                           <span className="text-green-600 text-[10px]">(-{savingsPct}%)</span>
                         </p>
                       </div>
-                      <Link
-                        href={`/product/${product.id}`}
-                        className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs transition duration-150 shadow-md shadow-blue-500/10 hover:shadow-blue-500/20"
-                      >
-                        <span>Analyze Deal</span>
-                        <ChevronRight size={14} />
-                      </Link>
+                      <div className="flex gap-2">
+                        {isInWatchlist(product.id) ? (
+                          <button
+                            onClick={() => removeFromWatchlist(product.id)}
+                            className="bg-red-50 hover:bg-red-100 text-red-600 px-3.5 py-2.5 rounded-xl text-xs transition duration-150 border border-red-200"
+                          >
+                            Remove
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => addToWatchlist(product.id)}
+                            className="bg-white hover:bg-slate-100 text-slate-700 px-3.5 py-2.5 rounded-xl text-xs transition duration-150 border border-slate-200"
+                          >
+                            Add to Watchlist
+                          </button>
+                        )}
+                        <Link
+                          href={`/product/${product.id}`}
+                          className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2.5 rounded-xl text-xs transition duration-150 shadow-md shadow-blue-500/10 hover:shadow-blue-500/20"
+                        >
+                          <span>View Deal</span>
+                          <ChevronRight size={14} />
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 );

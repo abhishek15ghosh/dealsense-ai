@@ -20,7 +20,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const pathname = usePathname();
-  const { notifications, clearNotifications, markAsRead, markAllAsRead } = useApp();
+  const { notifications, clearNotifications, markAsRead, markAllAsRead, alerts } = useApp();
   const [showNotifications, setShowNotifications] = useState(false);
 
   // Get Page Title from Pathname
@@ -33,8 +33,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
     return 'DealSense AI';
   };
 
-  const unreadCount = notifications.filter(n => n.isRead === false).length;
-  console.log('[HEADER DEBUG] unreadCount:', unreadCount, 'notifications:', notifications);
+  const unreadCount = alerts.filter(a => a.read === false).length;
+  console.log('[HEADER DEBUG] unreadCount of alerts:', unreadCount, 'alerts:', alerts);
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
