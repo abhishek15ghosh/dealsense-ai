@@ -83,6 +83,13 @@ export function initScheduler(): void {
     return;
   }
   
+  // Skip stateful background intervals when running in serverless production environments
+  if (process.env.NODE_ENV === 'production') {
+    console.log('[Scheduler] Running in production mode. Stateful interval scheduler skipped.');
+    isSchedulerInitialized = true;
+    return;
+  }
+  
   isSchedulerInitialized = true;
   console.log('[Scheduler] Initializing interval-based background tracker...');
   

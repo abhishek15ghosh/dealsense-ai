@@ -58,7 +58,7 @@ export default function PriceChart({ data }: PriceChartProps) {
     Croma: true,
     'Reliance Digital': true,
   });
-  const [timeRange, setTimeRange] = useState<'7d' | '30d'>('30d');
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
 
   const storeColors = {
     Amazon: '#FF9900',
@@ -82,7 +82,24 @@ export default function PriceChart({ data }: PriceChartProps) {
     return `₹${value.toLocaleString('en-IN')}`;
   };
 
-  const displayedData = timeRange === '7d' ? data.slice(-7) : data;
+  const displayedData = 
+    timeRange === '7d' ? data.slice(-7) : 
+    timeRange === '30d' ? data.slice(-30) : 
+    timeRange === '90d' ? data.slice(-90) : 
+    data;
+
+  const getSubText = () => {
+    switch (timeRange) {
+      case '7d':
+        return 'Compare historical rates over the last 7 days';
+      case '30d':
+        return 'Compare historical rates over the last 30 days';
+      case '90d':
+        return 'Compare historical rates over the last 90 days';
+      case 'all':
+        return 'Compare all recorded historical rates';
+    }
+  };
 
   return (
     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
@@ -93,7 +110,7 @@ export default function PriceChart({ data }: PriceChartProps) {
               Price History Trends
             </h3>
             <p className="text-slate-500 text-xs mt-0.5">
-              Compare historical rates over the last {timeRange === '7d' ? '7' : '30'} days
+              {getSubText()}
             </p>
           </div>
 
@@ -118,6 +135,26 @@ export default function PriceChart({ data }: PriceChartProps) {
               }`}
             >
               30 Days
+            </button>
+            <button
+              onClick={() => setTimeRange('90d')}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold tracking-wider uppercase transition-all ${
+                timeRange === '90d'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              90 Days
+            </button>
+            <button
+              onClick={() => setTimeRange('all')}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold tracking-wider uppercase transition-all ${
+                timeRange === 'all'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              All
             </button>
           </div>
         </div>
@@ -159,8 +196,9 @@ export default function PriceChart({ data }: PriceChartProps) {
             <defs>
               {Object.keys(storeColors).map((store) => {
                 const color = storeColors[store as keyof typeof storeColors];
+                const safeId = store.replace(/\s+/g, '-');
                 return (
-                  <linearGradient key={store} id={`grad-${store}`} x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient key={store} id={`grad-${safeId}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={color} stopOpacity={0.15} />
                     <stop offset="95%" stopColor={color} stopOpacity={0.0} />
                   </linearGradient>
@@ -188,6 +226,7 @@ export default function PriceChart({ data }: PriceChartProps) {
             {(Object.keys(activeStores) as Array<keyof typeof activeStores>).map((store) => {
               if (!activeStores[store]) return null;
               const color = storeColors[store];
+              const safeId = store.replace(/\s+/g, '-');
               return (
                 <Area
                   key={store}
@@ -196,7 +235,7 @@ export default function PriceChart({ data }: PriceChartProps) {
                   stroke={color}
                   strokeWidth={2.5}
                   fillOpacity={1}
-                  fill={`url(#grad-${store})`}
+                  fill={`url(#grad-${safeId})`}
                   name={store}
                 />
               );

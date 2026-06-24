@@ -8,6 +8,16 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
+interface DailyHistoryPoint {
+  date: string;
+  timestamp: Date;
+  Amazon?: number;
+  Flipkart?: number;
+  Croma?: number;
+  'Reliance Digital'?: number;
+  [key: string]: string | Date | number | undefined;
+}
+
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
@@ -52,7 +62,45 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     // Load related documents
     const sources = await ProductSource.find({ productId: id });
-    const history = await PriceHistory.find({ productId: id });
+    
+    // Sort PriceHistory by timestamp ascending to ensure chronological order
+    const history = await PriceHistory.find({ productId: id }).sort({ timestamp: 1 });
+
+    // Aggregate and normalize pivot-style and flat-style history records daily
+    const currentPrices: Record<string, number | undefined> = {
+      Amazon: undefined,
+      Flipkart: undefined,
+      Croma: undefined,
+      'Reliance Digital': undefined
+    };
+
+    const dailyHistory: Record<string, DailyHistoryPoint> = {};
+
+    for (const h of history) {
+      const raw = h.toObject ? h.toObject() : h;
+      const date = raw.date || (raw.timestamp ? new Date(raw.timestamp).toLocaleDateString('en-US', { month: 'short', day: '2-digit' }) : 'Unknown');
+
+      if (raw.retailer && raw.price !== undefined) {
+        currentPrices[raw.retailer] = raw.price;
+      }
+
+      const retailers = ['Amazon', 'Flipkart', 'Croma', 'Reliance Digital'];
+      retailers.forEach((r) => {
+        if (raw[r] !== undefined && raw[r] !== null) {
+          currentPrices[r] = raw[r];
+        }
+      });
+
+      dailyHistory[date] = {
+        date,
+        timestamp: raw.timestamp || new Date(),
+        ...currentPrices
+      };
+    }
+
+    const sortedDailyHistory = Object.values(dailyHistory).sort((a, b) => {
+      return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+    });
 
     // Calculate inputs for the AI Deal Engine
     const currentBestPrice = doc.bestDealPrice;
@@ -122,18 +170,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
         inStock: s.availability === 'In Stock',
         deliveryDays: s.platform.includes('D2C') ? 3 : (s.platform === 'Amazon' ? 1 : 2)
       })),
-      priceHistory: history.map((h) => {
+      priceHistory: sortedDailyHistory.map((d) => {
         const hObj: Record<string, string | number | undefined> = {
-          date: h.date,
-          Amazon: h.Amazon,
-          Flipkart: h.Flipkart,
-          Croma: h.Croma,
-          'Reliance Digital': h['Reliance Digital']
+          date: d.date,
+          Amazon: d.Amazon,
+          Flipkart: d.Flipkart,
+          Croma: d.Croma,
+          'Reliance Digital': d['Reliance Digital']
         };
-        const raw = h.toObject ? h.toObject() : h;
-        Object.keys(raw).forEach((key) => {
-          if (!['productId', 'date', '_id', '__v', 'Amazon', 'Flipkart', 'Croma', 'Reliance Digital'].includes(key)) {
-            hObj[key] = raw[key] as string | number | undefined;
+        
+        Object.keys(d).forEach((key) => {
+          if (!['date', 'timestamp', 'Amazon', 'Flipkart', 'Croma', 'Reliance Digital'].includes(key)) {
+            hObj[key] = d[key] as string | number | undefined;
           }
         });
         return hObj;

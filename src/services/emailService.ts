@@ -2,19 +2,6 @@ import User from '@/models/User';
 import dbConnect from '@/lib/mongodb';
 import { IAlert } from '@/models/Alert';
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'mock';
-const EMAIL_FROM = process.env.EMAIL_FROM || 'DealSense AI <onboarding@resend.dev>';
-
-// In production, validate configuration to prevent silent email failure
-if (EMAIL_PROVIDER === 'resend' && !RESEND_API_KEY) {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('RESEND_API_KEY environment variable is missing for email provider "resend". Please configure RESEND_API_KEY in your production configuration.');
-  } else {
-    console.warn('Warning: EMAIL_PROVIDER is set to "resend" but RESEND_API_KEY is missing. Falling back to mock mode for development.');
-  }
-}
-
 export interface SendEmailOptions {
   to: string;
   subject: string;
@@ -22,13 +9,26 @@ export interface SendEmailOptions {
 }
 
 export async function sendEmail({ to, subject, html }: SendEmailOptions): Promise<boolean> {
-  const isMockMode = EMAIL_PROVIDER === 'mock' || !RESEND_API_KEY;
+  const provider = process.env.EMAIL_PROVIDER || 'mock';
+  const apiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.EMAIL_FROM || 'DealSense AI <onboarding@resend.dev>';
+
+  // Validate configuration to prevent silent email failure in production
+  if (provider === 'resend' && !apiKey) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('RESEND_API_KEY environment variable is missing for email provider "resend". Please configure RESEND_API_KEY in your production configuration.');
+    } else {
+      console.warn('Warning: EMAIL_PROVIDER is set to "resend" but RESEND_API_KEY is missing. Falling back to mock mode.');
+    }
+  }
+
+  const isMockMode = provider === 'mock' || !apiKey;
 
   if (isMockMode) {
     console.log(`[MOCK EMAIL SENT]
 =========================================
 TO:      ${to}
-FROM:    ${EMAIL_FROM}
+FROM:    ${fromEmail}
 SUBJECT: ${subject}
 BODY:
 ${html}
@@ -40,11 +40,11 @@ ${html}
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: EMAIL_FROM,
+        from: fromEmail,
         to: [to],
         subject,
         html
@@ -90,6 +90,7 @@ export async function sendPriceTargetReachedEmail(alert: IAlert, currentPrice: n
       return false;
     }
     await dbConnect();
+    
     // 1. Fetch user to check preference
     const user = await User.findOne({ email: alert.userEmail });
     if (user && user.emailAlertsEnabled === false) {
@@ -97,9 +98,29 @@ export async function sendPriceTargetReachedEmail(alert: IAlert, currentPrice: n
       return false;
     }
 
-    const subject = "DealSense Alert: Your target price was reached";
+    // 2. Acquire database lock to prevent duplicate sends (concurrency safe)
+    const mongoose = (await import('mongoose')).default;
+    const AlertModel = mongoose.models.Alert || mongoose.model('Alert');
+    
+    const lockedAlert = await AlertModel.findOneAndUpdate(
+      { _id: alert._id, emailSentAt: { $exists: false } },
+      { $set: { emailSentAt: new Date() } },
+      { new: true }
+    );
+
+    if (!lockedAlert) {
+      console.log(`[EMAIL BYPASSED] Alert ${alert._id} has already been sent or is currently locked.`);
+      return false;
+    }
+
+    const subject = `DealSense Alert: ${alert.productName || 'Product'} target price reached`;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const productLink = `${appUrl}/product/${alert.productId}`;
+
+    // Calculate dynamic price metrics for the email HTML body
+    const oldPrice = alert.oldPrice || alert.currentPriceAtSet || alert.targetPrice || currentPrice;
+    const newPrice = currentPrice;
+    const savings = oldPrice > newPrice ? oldPrice - newPrice : (alert.savings || 0);
 
     const html = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
@@ -109,19 +130,23 @@ export async function sendPriceTargetReachedEmail(alert: IAlert, currentPrice: n
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
           <tr>
             <td style="padding: 8px 0; font-weight: bold; color: #475569;">Product:</td>
-            <td style="padding: 8px 0; color: #0f172a;">${alert.productName}</td>
+            <td style="padding: 8px 0; color: #0f172a;">${alert.productName || 'Unknown Product'}</td>
           </tr>
           <tr>
             <td style="padding: 8px 0; font-weight: bold; color: #475569;">Platform:</td>
-            <td style="padding: 8px 0; color: #0f172a;">${alert.storeName}</td>
+            <td style="padding: 8px 0; color: #0f172a;">${alert.storeName || alert.platform || 'Retailer'}</td>
           </tr>
           <tr>
-             <td style="padding: 8px 0; font-weight: bold; color: #475569;">Target Price:</td>
-             <td style="padding: 8px 0; color: #0f172a; font-weight: bold;">₹${(alert.targetPrice ?? 0).toLocaleString('en-IN')}</td>
+            <td style="padding: 8px 0; font-weight: bold; color: #475569;">Original Price:</td>
+            <td style="padding: 8px 0; color: #0f172a;">₹${oldPrice.toLocaleString('en-IN')}</td>
           </tr>
           <tr>
             <td style="padding: 8px 0; font-weight: bold; color: #475569;">Current Price:</td>
-            <td style="padding: 8px 0; color: #10b981; font-weight: bold; font-size: 16px;">₹${currentPrice.toLocaleString('en-IN')}</td>
+            <td style="padding: 8px 0; color: #10b981; font-weight: bold; font-size: 16px;">₹${newPrice.toLocaleString('en-IN')}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; color: #475569;">Savings:</td>
+            <td style="padding: 8px 0; color: #10b981; font-weight: bold;">₹${savings.toLocaleString('en-IN')}</td>
           </tr>
         </table>
 
@@ -138,11 +163,32 @@ export async function sendPriceTargetReachedEmail(alert: IAlert, currentPrice: n
     `;
 
     const success = await sendEmail({ to: alert.userEmail, subject, html });
-    if (success) {
-      alert.emailSentAt = new Date();
-      await alert.save();
+    
+    // Store email delivery status in MongoDB
+    try {
+      const EmailLog = (await import('@/models/EmailLog')).default;
+      await EmailLog.create({
+        to: alert.userEmail,
+        subject,
+        alertId: alert._id,
+        productId: alert.productId,
+        status: success ? 'success' : 'failed',
+        sentAt: new Date()
+      });
+    } catch (logErr) {
+      console.error('[Email Service] Failed to create EmailLog record:', logErr);
     }
-    return success;
+
+    if (!success) {
+      // Revert database lock so it can be retried on next scheduler run
+      await AlertModel.updateOne({ _id: alert._id }, { $unset: { emailSentAt: "" } });
+      return false;
+    }
+
+    // Sync object in-memory with locked document
+    alert.emailSentAt = lockedAlert.emailSentAt;
+    return true;
+
   } catch (error) {
     console.error('Error sending price target email:', error);
     return false;

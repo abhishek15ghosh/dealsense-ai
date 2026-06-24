@@ -28,13 +28,13 @@ export async function runPriceMonitoringEngine() {
       // Fetch active ProductSource records for this product
       let sources = await ProductSource.find({ productId, active: true });
       
-      // Auto-seed default Amazon mock ProductSource record if none exists
+      // Auto-seed default Amazon and Flipkart mock ProductSource records if none exists
       if (sources.length === 0) {
-        console.log(`[Monitoring Engine] Seeding default active ProductSource for ${productId}`);
+        console.log(`[Monitoring Engine] Seeding default active ProductSources for ${productId}`);
         const defaultTitle = productDoc ? productDoc.name : productId.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         const defaultBestPrice = productDoc ? productDoc.bestDealPrice || 49999 : 49999;
         
-        const newSource = await ProductSource.create({
+        const amazonSource = await ProductSource.create({
           productId,
           title: defaultTitle,
           brand: productDoc ? productDoc.brand || 'Brand' : 'Brand',
@@ -50,7 +50,25 @@ export async function runPriceMonitoringEngine() {
           active: true,
           status: 'Success'
         });
-        sources = [newSource];
+
+        const flipkartSource = await ProductSource.create({
+          productId,
+          title: defaultTitle,
+          brand: productDoc ? productDoc.brand || 'Brand' : 'Brand',
+          category: productDoc ? productDoc.category || 'Gadgets' : 'Gadgets',
+          image: productDoc ? productDoc.image || `/images/${productId}.png` : `/images/${productId}.png`,
+          currentPrice: Math.round(defaultBestPrice * 1.02),
+          originalPrice: productDoc ? (productDoc.originalPrice || defaultBestPrice * 1.15) : defaultBestPrice * 1.15,
+          platform: 'Flipkart',
+          retailer: 'Flipkart',
+          productUrl: `https://www.flipkart.com/dp/mock-${productId}`,
+          availability: 'In Stock',
+          lastChecked: new Date(),
+          active: true,
+          status: 'Success'
+        });
+
+        sources = [amazonSource, flipkartSource];
       }
 
       // Loop through all active sources and update their prices
