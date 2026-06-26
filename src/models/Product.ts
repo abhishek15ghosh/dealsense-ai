@@ -21,6 +21,14 @@ export interface IProduct extends Document {
     expectedBetterPriceRange?: string;
     bestPlatform?: string;
   };
+  aiPricePrediction?: {
+    nextPredictedDropDate?: string;
+    predictedDropAmount?: number;
+    confidenceScore?: number;
+    forecast?: Array<{ date: string; price: number }>;
+    analysis?: string;
+    lastUpdated?: Date;
+  };
 }
 
 const ProductSchema = new Schema<IProduct>({
@@ -43,6 +51,17 @@ const ProductSchema = new Schema<IProduct>({
     summary: { type: String, required: true },
     expectedBetterPriceRange: { type: String },
     bestPlatform: { type: String }
+  },
+  aiPricePrediction: {
+    nextPredictedDropDate: { type: String },
+    predictedDropAmount: { type: Number },
+    confidenceScore: { type: Number },
+    forecast: [{
+      date: { type: String },
+      price: { type: Number }
+    }],
+    analysis: { type: String },
+    lastUpdated: { type: Date, default: Date.now }
   }
 });
 

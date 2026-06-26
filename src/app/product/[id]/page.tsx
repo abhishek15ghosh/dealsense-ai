@@ -58,6 +58,13 @@ interface ProductType {
     expectedBetterPriceRange?: string;
     bestPlatform?: string;
   };
+  aiPricePrediction?: {
+    nextPredictedDropDate?: string;
+    predictedDropAmount: number;
+    confidenceScore: number;
+    forecast: Array<{ date: string; price: number }>;
+    analysis: string;
+  };
 }
 
 export default function ProductDetailsPage({ params }: PageProps) {
@@ -409,6 +416,46 @@ export default function ProductDetailsPage({ params }: PageProps) {
               </div>
             </div>
           </div>
+
+          {/* AI Price Prediction Card */}
+          {product.aiPricePrediction && (
+            <div className="bg-gradient-to-br from-indigo-50/50 to-purple-50/20 border border-indigo-100 p-6 rounded-3xl space-y-4 shadow-sm">
+              <div className="flex items-center space-x-2 border-b border-indigo-100/50 pb-3">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                </span>
+                <span className="font-display font-bold text-sm text-slate-800">
+                  AI Price Forecasting Model
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/80 p-4 rounded-2xl border border-indigo-50/60 flex flex-col justify-between">
+                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">Next Predicted Drop</span>
+                  <span className="text-sm font-black text-indigo-700 font-display mt-1">
+                    {product.aiPricePrediction.nextPredictedDropDate || 'N/A'}
+                  </span>
+                </div>
+                <div className="bg-white/80 p-4 rounded-2xl border border-indigo-50/60 flex flex-col justify-between">
+                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">Projected Savings</span>
+                  <span className="text-sm font-black text-green-600 font-display mt-1">
+                    {product.aiPricePrediction.predictedDropAmount > 0 
+                      ? `₹${product.aiPricePrediction.predictedDropAmount.toLocaleString('en-IN')}`
+                      : '₹0'
+                    }
+                  </span>
+                </div>
+              </div>
+
+              {product.aiPricePrediction.analysis && (
+                <div className="text-xs text-slate-600 leading-relaxed border-t border-indigo-50/50 pt-3">
+                  <p className="font-semibold text-slate-800 mb-1">Pricing Trajectory Analysis:</p>
+                  <p className="italic text-slate-500">&ldquo;{product.aiPricePrediction.analysis}&rdquo;</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
       </div>
@@ -570,7 +617,10 @@ export default function ProductDetailsPage({ params }: PageProps) {
       </div>
 
       {/* Price History Area Chart */}
-      <PriceChart data={formattedChartData as unknown as PriceHistoryPoint[]} />
+      <PriceChart 
+        data={formattedChartData as unknown as PriceHistoryPoint[]} 
+        forecast={product.aiPricePrediction?.forecast}
+      />
 
       {/* SVG Linear Gradient for Gauge Ring */}
       <svg className="absolute w-0 h-0">

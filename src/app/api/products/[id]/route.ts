@@ -52,7 +52,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
               deliveryDays: s.deliveryDays
             })),
             priceHistory: mock.priceHistory,
-            aiRecommendation: mock.aiRecommendation
+            aiRecommendation: mock.aiRecommendation,
+            aiPricePrediction: {
+              nextPredictedDropDate: 'N/A',
+              predictedDropAmount: 0,
+              confidenceScore: 70,
+              forecast: [],
+              analysis: 'Historical data for mock product is stable. No immediate drop predicted.'
+            }
           };
           return NextResponse.json({ success: true, data: fullProduct }, { status: 200 });
         }
@@ -142,6 +149,27 @@ export async function GET(request: NextRequest, context: RouteContext) {
       expectedBetterPriceRange: dealOutput.expectedBetterPriceRange,
       bestPlatform: dealOutput.bestPlatform
     };
+
+    // Calculate AI price predictions
+    const { generatePricePrediction } = await import('@/services/aiPredictionEngine');
+    const predictionOutput = await generatePricePrediction({
+      productId: doc.customId,
+      productName: doc.name,
+      currentPrice: currentBestPrice,
+      lowestPrice: lowestRecordedPrice,
+      highestPrice: highestRecordedPrice,
+      history: history.length > 0 ? history : sortedDailyHistory
+    });
+
+    doc.aiPricePrediction = {
+      nextPredictedDropDate: predictionOutput.nextPredictedDropDate,
+      predictedDropAmount: predictionOutput.predictedDropAmount,
+      confidenceScore: predictionOutput.confidenceScore,
+      forecast: predictionOutput.forecast,
+      analysis: predictionOutput.analysis,
+      lastUpdated: new Date()
+    };
+
     await doc.save();
 
     if (currentDecision === 'BUY NOW' && prevDecision !== 'BUY NOW' && prevDecision !== 'BUY_NOW') {
@@ -193,6 +221,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
         summary: doc.aiRecommendation.summary,
         expectedBetterPriceRange: dealOutput.expectedBetterPriceRange,
         bestPlatform: dealOutput.bestPlatform
+      },
+      aiPricePrediction: {
+        nextPredictedDropDate: doc.aiPricePrediction?.nextPredictedDropDate || 'N/A',
+        predictedDropAmount: doc.aiPricePrediction?.predictedDropAmount || 0,
+        confidenceScore: doc.aiPricePrediction?.confidenceScore || 70,
+        forecast: doc.aiPricePrediction?.forecast || [],
+        analysis: doc.aiPricePrediction?.analysis || ''
       }
     };
 
