@@ -51,12 +51,14 @@ interface ProductType {
   prices: ProductPrice[];
   priceHistory: ProductPriceHistory[];
   aiRecommendation: {
-    decision: 'BUY NOW' | 'WAIT' | 'AVOID' | 'BUY_NOW';
+    decision: 'STRONG BUY' | 'BUY NOW' | 'WAIT' | 'STRONG WAIT' | 'HIGH RISK' | 'STRONG_BUY' | 'BUY_NOW' | 'STRONG_WAIT' | 'HIGH_RISK' | 'AVOID';
     confidence: number;
     reasoning: string[];
     summary: string;
     expectedBetterPriceRange?: string;
     bestPlatform?: string;
+    estimatedSavings?: number;
+    bestExpectedPurchaseDate?: string;
   };
   aiPricePrediction?: {
     nextPredictedDropDate?: string;
@@ -185,29 +187,46 @@ export default function ProductDetailsPage({ params }: PageProps) {
 
   // Helper styles for AI decisions
   const getAiCardColor = (decision: string) => {
-    switch (decision) {
-      case 'BUY NOW':
-      case 'BUY_NOW':
+    const d = String(decision || '').toUpperCase().replace('_', ' ');
+    switch (d) {
+      case 'STRONG BUY':
         return {
-          bg: 'bg-green-50 border-green-200/80',
+          bg: 'bg-blue-50/70 border-blue-200/80',
+          text: 'text-blue-800',
+          badge: 'bg-blue-600 text-white font-extrabold',
+          iconColor: 'text-blue-600',
+          progress: 'bg-blue-600'
+        };
+      case 'BUY NOW':
+        return {
+          bg: 'bg-green-50/70 border-green-200/80',
           text: 'text-green-800',
-          badge: 'bg-green-500 text-white',
+          badge: 'bg-green-500 text-white font-extrabold',
           iconColor: 'text-green-600',
           progress: 'bg-green-600'
         };
       case 'WAIT':
         return {
-          bg: 'bg-amber-50 border-amber-200/80',
+          bg: 'bg-amber-50/70 border-amber-200/80',
           text: 'text-amber-800',
-          badge: 'bg-amber-500 text-white',
+          badge: 'bg-amber-500 text-white font-extrabold',
           iconColor: 'text-amber-600',
           progress: 'bg-amber-600'
         };
+      case 'STRONG WAIT':
+        return {
+          bg: 'bg-orange-50/70 border-orange-200/80',
+          text: 'text-orange-800',
+          badge: 'bg-orange-500 text-white font-extrabold',
+          iconColor: 'text-orange-600',
+          progress: 'bg-orange-600'
+        };
+      case 'HIGH RISK':
       case 'AVOID':
         return {
-          bg: 'bg-red-50 border-red-200/80',
+          bg: 'bg-red-50/70 border-red-200/80',
           text: 'text-red-800',
-          badge: 'bg-red-500 text-white',
+          badge: 'bg-red-500 text-white font-extrabold',
           iconColor: 'text-red-600',
           progress: 'bg-red-600'
         };
@@ -215,7 +234,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
         return {
           bg: 'bg-slate-50 border-slate-200/80',
           text: 'text-slate-800',
-          badge: 'bg-slate-500 text-white',
+          badge: 'bg-slate-500 text-white font-extrabold',
           iconColor: 'text-slate-600',
           progress: 'bg-slate-600'
         };
@@ -396,23 +415,33 @@ export default function ProductDetailsPage({ params }: PageProps) {
                   ))}
                 </div>
 
-                {/* Expected Price Range & Best Platform */}
-                {(product.aiRecommendation.expectedBetterPriceRange || product.aiRecommendation.bestPlatform) && (
-                  <div className="grid grid-cols-2 gap-3 pt-3 mt-3 border-t border-slate-200/50 text-[10px] uppercase font-extrabold tracking-wider text-slate-500">
-                    {product.aiRecommendation.expectedBetterPriceRange && (
-                      <div className="bg-white/50 p-2.5 rounded-xl border border-slate-200/20">
-                        <span className="text-slate-400 block text-[8px]">Projected price range</span>
-                        <span className="text-slate-700 text-xs font-black">{product.aiRecommendation.expectedBetterPriceRange}</span>
-                      </div>
-                    )}
-                    {product.aiRecommendation.bestPlatform && (
-                      <div className="bg-white/50 p-2.5 rounded-xl border border-slate-200/20">
-                        <span className="text-slate-400 block text-[8px]">Best Store Platform</span>
-                        <span className="text-slate-700 text-xs font-black">{product.aiRecommendation.bestPlatform}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Expected Price Range, Best Platform, Savings & Expected Date */}
+                <div className="grid grid-cols-2 gap-3 pt-3 mt-3 border-t border-slate-200/50 text-[10px] uppercase font-extrabold tracking-wider text-slate-500">
+                  {product.aiRecommendation.expectedBetterPriceRange && (
+                    <div className="bg-white/50 p-2.5 rounded-xl border border-slate-200/20">
+                      <span className="text-slate-400 block text-[8px]">Projected price range</span>
+                      <span className="text-slate-700 text-xs font-black">{product.aiRecommendation.expectedBetterPriceRange}</span>
+                    </div>
+                  )}
+                  {product.aiRecommendation.bestPlatform && (
+                    <div className="bg-white/50 p-2.5 rounded-xl border border-slate-200/20">
+                      <span className="text-slate-400 block text-[8px]">Best Store Platform</span>
+                      <span className="text-slate-700 text-xs font-black">{product.aiRecommendation.bestPlatform}</span>
+                    </div>
+                  )}
+                  {product.aiRecommendation.estimatedSavings !== undefined && (
+                    <div className="bg-white/50 p-2.5 rounded-xl border border-slate-200/20">
+                      <span className="text-slate-400 block text-[8px]">Estimated Savings</span>
+                      <span className="text-green-600 text-xs font-black">₹{product.aiRecommendation.estimatedSavings.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {product.aiRecommendation.bestExpectedPurchaseDate && (
+                    <div className="bg-white/50 p-2.5 rounded-xl border border-slate-200/20">
+                      <span className="text-slate-400 block text-[8px]">Best Purchase Date</span>
+                      <span className="text-slate-700 text-xs font-black">{product.aiRecommendation.bestExpectedPurchaseDate}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

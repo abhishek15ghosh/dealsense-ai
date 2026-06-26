@@ -46,20 +46,64 @@ export async function GET() {
         });
 
         const prevDecision = doc.aiRecommendation?.decision;
-        const currentDecision = dealOutput.recommendation === 'BUY_NOW' ? 'BUY NOW' : dealOutput.recommendation;
+
+        // Map recommendation from engine (with underscores) to database-compatible space formats
+        let currentDecision = 'WAIT';
+        if (dealOutput.recommendation === 'STRONG_BUY') currentDecision = 'STRONG BUY';
+        else if (dealOutput.recommendation === 'BUY_NOW') currentDecision = 'BUY NOW';
+        else if (dealOutput.recommendation === 'STRONG_WAIT') currentDecision = 'STRONG WAIT';
+        else if (dealOutput.recommendation === 'HIGH_RISK') currentDecision = 'HIGH RISK';
+
+        // Calculate chronological average price from PriceHistory
+        const historyPrices = history
+          .map(h => h.price ?? h.Amazon ?? h.Flipkart ?? h.Croma ?? h['Reliance Digital'] ?? 0)
+          .filter(p => p > 0);
+        const averagePrice = historyPrices.length > 0
+          ? Math.round(historyPrices.reduce((sum, p) => sum + p, 0) / historyPrices.length)
+          : currentBestPrice;
+
+        // Fetch forecast predictedDropAmount and nextPredictedDropDate if present
+        const predictedDropAmount = doc.aiPricePrediction?.predictedDropAmount || 0;
+        const nextPredictedDropDate = doc.aiPricePrediction?.nextPredictedDropDate || 'N/A';
+
+        // Calculate Estimated Savings
+        let estimatedSavings = 0;
+        if (currentDecision === 'STRONG BUY' || currentDecision === 'BUY NOW') {
+          estimatedSavings = Math.max(0, Math.round(averagePrice - currentBestPrice));
+          if (estimatedSavings <= 0) {
+            estimatedSavings = Math.max(0, Math.round(msrp - currentBestPrice));
+          }
+        } else if (currentDecision === 'WAIT' || currentDecision === 'STRONG WAIT') {
+          estimatedSavings = predictedDropAmount;
+        }
+
+        // Calculate Best Expected Purchase Date
+        let bestExpectedPurchaseDate = 'Today';
+        if (currentDecision === 'STRONG BUY' || currentDecision === 'BUY NOW') {
+          bestExpectedPurchaseDate = 'Today';
+        } else if (currentDecision === 'WAIT' || currentDecision === 'STRONG WAIT') {
+          bestExpectedPurchaseDate = nextPredictedDropDate !== 'N/A'
+            ? nextPredictedDropDate
+            : 'Within 7-10 days';
+        } else if (currentDecision === 'HIGH RISK') {
+          bestExpectedPurchaseDate = 'After market stabilizes (approx 10-14 days)';
+        }
 
         // Update document with new recommendation properties
         doc.aiRecommendation = {
-          decision: currentDecision,
+          decision: currentDecision as 'STRONG BUY' | 'BUY NOW' | 'WAIT' | 'STRONG WAIT' | 'HIGH RISK',
           confidence: dealOutput.confidenceScore,
           reasoning: dealOutput.bulletReasons,
           summary: dealOutput.simpleExplanation,
           expectedBetterPriceRange: dealOutput.expectedBetterPriceRange,
-          bestPlatform: dealOutput.bestPlatform
+          bestPlatform: dealOutput.bestPlatform,
+          estimatedSavings,
+          bestExpectedPurchaseDate
         };
         await doc.save();
 
-        if (currentDecision === 'BUY NOW' && prevDecision !== 'BUY NOW' && prevDecision !== 'BUY_NOW') {
+        const isBuyRecommendation = (dec?: string) => dec === 'STRONG BUY' || dec === 'BUY NOW' || dec === 'STRONG_BUY' || dec === 'BUY_NOW';
+        if (isBuyRecommendation(currentDecision) && !isBuyRecommendation(prevDecision)) {
           const { triggerWatchlistNotificationForBuyNow } = await import('@/services/notificationService');
           await triggerWatchlistNotificationForBuyNow(doc.customId, doc.name);
         }
@@ -107,7 +151,9 @@ export async function GET() {
             reasoning: doc.aiRecommendation.reasoning,
             summary: doc.aiRecommendation.summary,
             expectedBetterPriceRange: dealOutput.expectedBetterPriceRange,
-            bestPlatform: dealOutput.bestPlatform
+            bestPlatform: dealOutput.bestPlatform,
+            estimatedSavings: doc.aiRecommendation.estimatedSavings || 0,
+            bestExpectedPurchaseDate: doc.aiRecommendation.bestExpectedPurchaseDate || 'Today'
           }
         };
       })
@@ -126,9 +172,9 @@ export async function GET() {
       .sort((a, b) => b.dropAmount - a.dropAmount)
       .slice(0, 6);
 
-    // B. Trending deals (BUY NOW or BUY_NOW sorted by confidence)
+    // B. Trending deals (STRONG BUY or BUY NOW sorted by confidence)
     const trendingDeals = [...fullProducts]
-      .filter((p) => p.aiRecommendation.decision === 'BUY NOW' || p.aiRecommendation.decision === 'BUY_NOW')
+      .filter((p) => p.aiRecommendation.decision === 'STRONG BUY' || p.aiRecommendation.decision === 'BUY NOW' || p.aiRecommendation.decision === 'STRONG_BUY' || p.aiRecommendation.decision === 'BUY_NOW')
       .sort((a, b) => b.aiRecommendation.confidence - a.aiRecommendation.confidence)
       .slice(0, 4);
 

@@ -45,7 +45,7 @@ interface DashboardProduct {
     deliveryDays: number;
   }>;
   aiRecommendation: {
-    decision: 'BUY NOW' | 'WAIT' | 'AVOID' | 'BUY_NOW';
+    decision: 'STRONG BUY' | 'BUY NOW' | 'WAIT' | 'STRONG WAIT' | 'HIGH RISK' | 'STRONG_BUY' | 'BUY_NOW' | 'STRONG_WAIT' | 'HIGH_RISK' | 'AVOID';
     confidence: number;
     reasoning: string[];
     summary: string;
@@ -84,7 +84,7 @@ const getFallbackInsights = (): InsightsData => {
       prices: doc.prices,
       priceHistory: doc.priceHistory,
       aiRecommendation: doc.aiRecommendation as {
-        decision: 'BUY NOW' | 'WAIT' | 'AVOID' | 'BUY_NOW';
+        decision: 'STRONG BUY' | 'BUY NOW' | 'WAIT' | 'STRONG WAIT' | 'HIGH RISK' | 'STRONG_BUY' | 'BUY_NOW' | 'STRONG_WAIT' | 'HIGH_RISK' | 'AVOID';
         confidence: number;
         reasoning: string[];
         summary: string;
@@ -105,7 +105,10 @@ const getFallbackInsights = (): InsightsData => {
     .slice(0, 6);
 
   const trendingDeals = [...fullProducts]
-    .filter((p) => p.aiRecommendation.decision === 'BUY NOW' || p.aiRecommendation.decision === 'BUY_NOW')
+    .filter((p) => {
+      const d = String(p.aiRecommendation.decision).toUpperCase().replace('_', ' ');
+      return d === 'STRONG BUY' || d === 'BUY NOW';
+    })
     .sort((a, b) => b.aiRecommendation.confidence - a.aiRecommendation.confidence)
     .slice(0, 4);
 

@@ -84,7 +84,9 @@ export async function GET(request: NextRequest) {
             reasoning: doc.aiRecommendation.reasoning,
             summary: doc.aiRecommendation.summary,
             expectedBetterPriceRange: doc.aiRecommendation.expectedBetterPriceRange,
-            bestPlatform: doc.aiRecommendation.bestPlatform
+            bestPlatform: doc.aiRecommendation.bestPlatform,
+            estimatedSavings: doc.aiRecommendation.estimatedSavings || 0,
+            bestExpectedPurchaseDate: doc.aiRecommendation.bestExpectedPurchaseDate || 'Today'
           }
         };
       })

@@ -28,10 +28,14 @@ export interface Product {
   prices: StorePrice[];
   priceHistory: PriceHistoryPoint[];
   aiRecommendation: {
-    decision: 'BUY NOW' | 'WAIT' | 'AVOID';
+    decision: 'STRONG BUY' | 'BUY NOW' | 'WAIT' | 'STRONG WAIT' | 'HIGH RISK' | 'STRONG_BUY' | 'BUY_NOW' | 'STRONG_WAIT' | 'HIGH_RISK' | 'AVOID';
     confidence: number; // 0 to 100
     reasoning: string[];
     summary: string;
+    expectedBetterPriceRange?: string;
+    bestPlatform?: string;
+    estimatedSavings?: number;
+    bestExpectedPurchaseDate?: string;
   };
 }
 

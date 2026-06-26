@@ -82,7 +82,7 @@ function SearchContent({ queryParam }: SearchContentProps) {
     'Dell D2C'
   ];
   // AI Decisions list
-  const aiDecisions = ['All', 'BUY NOW', 'WAIT', 'AVOID'];
+  const aiDecisions = ['All', 'STRONG BUY', 'BUY NOW', 'WAIT', 'STRONG WAIT', 'HIGH RISK'];
 
   // Fetch search results from API
   useEffect(() => {
@@ -150,7 +150,10 @@ function SearchContent({ queryParam }: SearchContentProps) {
 
     // Filter by AI recommendation decision
     if (aiDecisionFilter !== 'All') {
-      filteredProducts = filteredProducts.filter((p) => p.aiRecommendation && p.aiRecommendation.decision === aiDecisionFilter);
+      filteredProducts = filteredProducts.filter((p) => {
+        if (!p.aiRecommendation?.decision) return false;
+        return p.aiRecommendation.decision.toUpperCase().replace('_', ' ') === aiDecisionFilter.toUpperCase().replace('_', ' ');
+      });
     }
   }
 
@@ -160,14 +163,19 @@ function SearchContent({ queryParam }: SearchContentProps) {
   };
 
   const getRecommendationBadge = (decision: Product['aiRecommendation']['decision']) => {
-    switch (decision) {
+    const d = String(decision || '').toUpperCase().replace('_', ' ');
+    switch (d) {
+      case 'STRONG BUY':
+        return 'bg-blue-50 text-blue-700 border-blue-100 font-extrabold';
       case 'BUY NOW':
-      case 'BUY_NOW':
-        return 'bg-green-50 text-green-700 border-green-100';
+        return 'bg-green-50 text-green-700 border-green-100 font-bold';
       case 'WAIT':
-        return 'bg-amber-50 text-amber-700 border-amber-100';
+        return 'bg-amber-50 text-amber-700 border-amber-100 font-bold';
+      case 'STRONG WAIT':
+        return 'bg-orange-50 text-orange-700 border-orange-100 font-bold';
+      case 'HIGH RISK':
       case 'AVOID':
-        return 'bg-red-50 text-red-700 border-red-100';
+        return 'bg-red-50 text-red-700 border-red-100 font-bold';
       default:
         return 'bg-slate-50 text-slate-700 border-slate-100';
     }

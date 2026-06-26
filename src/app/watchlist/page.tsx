@@ -81,7 +81,6 @@ export default function WatchlistPage() {
               const original = product.prices?.[0]?.originalPrice || product.bestDealPrice;
               const current = product.bestDealPrice;
               const saving = original - current;
-              const pct = original > 0 ? Math.round((saving / original) * 100) : 0;
 
               return (
                 <div 
@@ -91,9 +90,26 @@ export default function WatchlistPage() {
                   <div className="space-y-3">
                     {/* Header */}
                     <div className="flex justify-between items-center">
-                      <span className="text-[9px] font-extrabold uppercase text-slate-400">
-                        {product.category}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[9px] font-extrabold uppercase text-slate-400">
+                          {product.category}
+                        </span>
+                        {product.aiRecommendation?.decision && (
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold border ${
+                            product.aiRecommendation.decision.toUpperCase().replace('_', ' ') === 'STRONG BUY'
+                              ? 'bg-blue-50 text-blue-700 border-blue-100'
+                              : product.aiRecommendation.decision.toUpperCase().replace('_', ' ') === 'BUY NOW'
+                              ? 'bg-green-50 text-green-700 border-green-100'
+                              : product.aiRecommendation.decision.toUpperCase().replace('_', ' ') === 'WAIT'
+                              ? 'bg-amber-50 text-amber-700 border-amber-100'
+                              : product.aiRecommendation.decision.toUpperCase().replace('_', ' ') === 'STRONG WAIT'
+                              ? 'bg-orange-50 text-orange-700 border-orange-100'
+                              : 'bg-red-50 text-red-700 border-red-100'
+                          }`}>
+                            {product.aiRecommendation.decision.replace('_', ' ')}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center space-x-0.5 text-amber-500 font-bold text-[10px] bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100">
                         <Star size={10} className="fill-amber-500" />
                         <span>{product.rating}</span>
@@ -134,10 +150,14 @@ export default function WatchlistPage() {
                       </div>
                       <div className="text-right">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Est. Savings</span>
-                        <span className="text-xs text-green-600 font-bold">
-                          ₹{saving.toLocaleString('en-IN')}{' '}
-                          <span className="font-extrabold text-[10px]">(-{pct}%)</span>
+                        <span className="text-xs text-green-600 font-bold block">
+                          ₹{(product.aiRecommendation?.estimatedSavings !== undefined ? product.aiRecommendation.estimatedSavings : saving).toLocaleString('en-IN')}
                         </span>
+                        {product.aiRecommendation?.bestExpectedPurchaseDate && (
+                          <div className="text-[8px] text-slate-500 font-bold mt-0.5">
+                            Buy: {product.aiRecommendation.bestExpectedPurchaseDate}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

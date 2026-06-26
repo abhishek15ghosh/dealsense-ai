@@ -14,7 +14,7 @@ export interface AIDealInput {
 }
 
 export interface AIDealOutput {
-  recommendation: 'BUY_NOW' | 'WAIT' | 'AVOID';
+  recommendation: 'STRONG_BUY' | 'BUY_NOW' | 'WAIT' | 'STRONG_WAIT' | 'HIGH_RISK';
   confidenceScore: number;
   simpleExplanation: string;
   bulletReasons: string[];
@@ -39,26 +39,55 @@ function runFallbackScoring(input: AIDealInput): AIDealOutput {
     bestDealStore
   } = input;
 
+  // Confidence Calculation
+  let confidenceScore = 70;
+  
+  if (currentBestPrice <= lowestRecordedPrice) {
+    confidenceScore += 10;
+  }
+  
+  if (priceVolatility > 0.20) {
+    confidenceScore -= 15;
+  } else if (priceVolatility < 0.05) {
+    confidenceScore += 5;
+  }
+  
+  if (similarPricePlatformsCount >= 2) {
+    confidenceScore += 5;
+  }
+  
+  if (!stockAvailable) {
+    confidenceScore -= 15;
+  }
+  
+  confidenceScore = Math.max(10, Math.min(100, confidenceScore));
+
+  // Score computation to determine the recommendation class
   let score = 50;
 
   // 1. Price position relative to limits
   if (currentBestPrice <= lowestRecordedPrice) {
-    score += 20;
+    score += 25;
   } else {
     const diffPct = (currentBestPrice - lowestRecordedPrice) / lowestRecordedPrice;
-    if (diffPct <= 0.05) {
-      score += 12;
+    if (diffPct <= 0.02) {
+      score += 15;
+    } else if (diffPct <= 0.05) {
+      score += 8;
     } else if (diffPct <= 0.10) {
-      score += 5;
+      score += 2;
+    } else if (diffPct > 0.15) {
+      score -= 15;
     }
   }
 
   const range = highestRecordedPrice - lowestRecordedPrice;
   if (range > 0) {
-    const position = (highestRecordedPrice - currentBestPrice) / range; // 1 = at lowest, 0 = at highest
+    const position = (highestRecordedPrice - currentBestPrice) / range; // 1 = lowest, 0 = highest
     if (position < 0.2) {
-      // Very close to highest recorded price
       score -= 15;
+    } else if (position > 0.8) {
+      score += 10;
     }
   }
 
@@ -68,74 +97,67 @@ function runFallbackScoring(input: AIDealInput): AIDealOutput {
   if (trend30Day === 'down') score += 4;
   if (trend30Day === 'up') score -= 6;
 
-  // 3. Volatility & position
-  if (priceVolatility > 0.25 && currentBestPrice > lowestRecordedPrice * 1.1) {
-    score -= 10;
-  }
-
-  // 4. Competitors
-  if (similarPricePlatformsCount >= 2) {
-    score += 5;
-  }
-
-  // 5. Stock
-  if (!stockAvailable) {
-    score -= 15;
-  }
-
-  // 6. Discount
+  // 3. Discount
   score += Math.min(20, discountPercentage * 0.4);
+  score = Math.max(10, Math.min(100, score));
 
-  // Bound score
-  score = Math.max(10, Math.min(95, score));
-
-  let recommendation: 'BUY_NOW' | 'WAIT' | 'AVOID';
-  let confidenceScore = Math.round(score);
+  // Determine Recommendation Category
+  let recommendation: 'STRONG_BUY' | 'BUY_NOW' | 'WAIT' | 'STRONG_WAIT' | 'HIGH_RISK';
   let simpleExplanation = '';
   let bulletReasons: string[] = [];
   let expectedBetterPriceRange = '';
 
-  if (score >= 65) {
-    recommendation = 'BUY_NOW';
-    simpleExplanation = `${input.name} is currently offering exceptional value, trading near its historically recorded low price with high confidence.`;
+  // Priority check for HIGH RISK
+  if (!stockAvailable || priceVolatility >= 0.20) {
+    recommendation = 'HIGH_RISK';
+    simpleExplanation = `Pricing for ${input.name} shows high volatility (${Math.round(priceVolatility * 100)}%) or stock limitations. We advise extreme caution.`;
     bulletReasons = [
-      `Current price ₹${currentBestPrice.toLocaleString('en-IN')} is within ${Math.round(((currentBestPrice - lowestRecordedPrice) / lowestRecordedPrice) * 100)}% of the lowest recorded price.`,
-      `Stable discount of ${discountPercentage}% detected across competitive retailers.`,
-      `Market trends remain supportive, indicating low likelihood of immediate further drops.`
+      `Price volatility index is high at ${Math.round(priceVolatility * 100)}%, suggesting potential artificial markup.`,
+      `Stock availability is restricted or unavailable across prime online retailers.`,
+      `Expected pricing trajectory is highly unstable in the short term.`
     ];
-    expectedBetterPriceRange = `₹${lowestRecordedPrice.toLocaleString('en-IN')} - ₹${Math.round(lowestRecordedPrice * 1.02).toLocaleString('en-IN')}`;
+    expectedBetterPriceRange = `₹${lowestRecordedPrice.toLocaleString('en-IN')} - ₹${Math.round(lowestRecordedPrice * 1.05).toLocaleString('en-IN')}`;
+  } else if (score >= 80 && currentBestPrice <= lowestRecordedPrice * 1.02) {
+    recommendation = 'STRONG_BUY';
+    simpleExplanation = `${input.name} is at an absolute bargain price, trading within 2% of its historical lowest recorded price.`;
+    bulletReasons = [
+      `Current price ₹${currentBestPrice.toLocaleString('en-IN')} is extremely close to the all-time low of ₹${lowestRecordedPrice.toLocaleString('en-IN')}.`,
+      `Solid discount rate of ${discountPercentage}% detected across competitive retailers.`,
+      `Stable price trends indicate a low likelihood of further price reductions soon.`
+    ];
+    expectedBetterPriceRange = `₹${lowestRecordedPrice.toLocaleString('en-IN')} - ₹${Math.round(lowestRecordedPrice * 1.01).toLocaleString('en-IN')}`;
+  } else if (score >= 65) {
+    recommendation = 'BUY_NOW';
+    simpleExplanation = `Current pricing for ${input.name} is highly favorable, representing a solid purchase window.`;
+    bulletReasons = [
+      `Current price is within ${Math.round(((currentBestPrice - lowestRecordedPrice) / lowestRecordedPrice) * 100)}% of the lowest recorded price.`,
+      `Healthy discount structure of ${discountPercentage}% relative to original MSRP.`,
+      `Price trends suggest stable market conditions suitable for purchasing.`
+    ];
+    expectedBetterPriceRange = `₹${lowestRecordedPrice.toLocaleString('en-IN')} - ₹${Math.round(lowestRecordedPrice * 1.03).toLocaleString('en-IN')}`;
   } else if (score >= 40) {
     recommendation = 'WAIT';
-    simpleExplanation = `Prices for ${input.name} are currently stable, but waiting for upcoming sales cycles could yield better discount structures.`;
+    simpleExplanation = `Prices for ${input.name} are average. Holding off for upcoming retail promotions is recommended.`;
     bulletReasons = [
-      `Current price is about ${Math.round(((currentBestPrice - lowestRecordedPrice) / lowestRecordedPrice) * 100)}% higher than the historical lowest.`,
-      `Price trends over the last 7 days are stable, suggesting no urgent pressure to purchase.`,
-      `A better deal is expected on upcoming festive cycles or promotions.`
+      `Current price is approximately ${Math.round(((currentBestPrice - lowestRecordedPrice) / lowestRecordedPrice) * 100)}% higher than the historical lowest.`,
+      `Price trends over the last 7 days are stable, suggesting no urgent pressure to buy.`,
+      `Better deals are anticipated during upcoming promotional sales cycles.`
     ];
     expectedBetterPriceRange = `₹${lowestRecordedPrice.toLocaleString('en-IN')} - ₹${Math.round(lowestRecordedPrice * 1.04).toLocaleString('en-IN')}`;
   } else {
-    recommendation = 'AVOID';
-    simpleExplanation = `Pricing is currently inflated or showing significant volatility. We recommend holding off on purchasing at this valuation.`;
+    recommendation = 'STRONG_WAIT';
+    simpleExplanation = `Pricing for ${input.name} is heavily marked up. We strongly recommend holding off on a purchase at this valuation.`;
     bulletReasons = [
-      `Pricing sits close to the historical peak of ₹${highestRecordedPrice.toLocaleString('en-IN')}.`,
-      `High volatility metrics index (${Math.round(priceVolatility * 100)}%) suggest price drops are highly likely soon.`,
-      `Current stock demands or listing markups are not favorable for tech buyers.`
+      `Current price is close to the historical peak of ₹${highestRecordedPrice.toLocaleString('en-IN')}.`,
+      `Price sits ${Math.round(((currentBestPrice - lowestRecordedPrice) / lowestRecordedPrice) * 100)}% above the lowest recorded rate.`,
+      `Pricing trajectory shows an upward inflation trend, making now a poor time to buy.`
     ];
-    expectedBetterPriceRange = `₹${Math.round(lowestRecordedPrice * 0.98).toLocaleString('en-IN')} - ₹${Math.round(lowestRecordedPrice * 1.03).toLocaleString('en-IN')}`;
-  }
-
-  // Adjust confidence depending on recommendation range
-  if (recommendation === 'BUY_NOW') {
-    confidenceScore = Math.max(75, confidenceScore);
-  } else if (recommendation === 'AVOID') {
-    confidenceScore = Math.max(80, confidenceScore);
-  } else {
-    confidenceScore = Math.max(50, confidenceScore);
+    expectedBetterPriceRange = `₹${lowestRecordedPrice.toLocaleString('en-IN')} - ₹${Math.round(lowestRecordedPrice * 1.03).toLocaleString('en-IN')}`;
   }
 
   return {
     recommendation,
-    confidenceScore,
+    confidenceScore: Math.round(confidenceScore),
     simpleExplanation,
     bulletReasons,
     expectedBetterPriceRange,
@@ -170,10 +192,10 @@ Stock Availability: ${input.stockAvailable ? 'In Stock' : 'Out of Stock'}
 Price Volatility: ${input.priceVolatility.toFixed(2)}
 Best Current Store: ${input.bestDealStore}
 
-Decide if the user should BUY_NOW, WAIT, or AVOID.
+Decide if the user should STRONG_BUY, BUY_NOW, WAIT, STRONG_WAIT, or HIGH_RISK.
 Return ONLY a valid JSON object in the following format:
 {
-  "recommendation": "BUY_NOW" | "WAIT" | "AVOID",
+  "recommendation": "STRONG_BUY" | "BUY_NOW" | "WAIT" | "STRONG_WAIT" | "HIGH_RISK",
   "confidenceScore": number (between 0 and 100),
   "simpleExplanation": "A short 1-2 sentence explanation of the recommendation.",
   "bulletReasons": [
@@ -214,8 +236,20 @@ Return ONLY a valid JSON object in the following format:
     }
 
     const jsonResult = JSON.parse(textOutput.trim());
+    const validRecommendations = ['STRONG_BUY', 'BUY_NOW', 'WAIT', 'STRONG_WAIT', 'HIGH_RISK'];
+    let recommendation = jsonResult.recommendation || 'WAIT';
+    if (!validRecommendations.includes(recommendation)) {
+      if (recommendation === 'AVOID') {
+        recommendation = 'STRONG_WAIT';
+      } else if (recommendation === 'BUY_NOW' || recommendation === 'BUY NOW') {
+        recommendation = 'BUY_NOW';
+      } else {
+        recommendation = 'WAIT';
+      }
+    }
+
     return {
-      recommendation: jsonResult.recommendation || 'WAIT',
+      recommendation: recommendation as 'STRONG_BUY' | 'BUY_NOW' | 'WAIT' | 'STRONG_WAIT' | 'HIGH_RISK',
       confidenceScore: typeof jsonResult.confidenceScore === 'number' ? jsonResult.confidenceScore : 70,
       simpleExplanation: jsonResult.simpleExplanation || '',
       bulletReasons: Array.isArray(jsonResult.bulletReasons) ? jsonResult.bulletReasons : [],

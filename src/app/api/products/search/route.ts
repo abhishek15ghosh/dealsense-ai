@@ -31,7 +31,9 @@ async function seedDatabaseIfEmpty() {
         decision: p.aiRecommendation.decision,
         confidence: p.aiRecommendation.confidence,
         reasoning: p.aiRecommendation.reasoning,
-        summary: p.aiRecommendation.summary
+        summary: p.aiRecommendation.summary,
+        estimatedSavings: 0,
+        bestExpectedPurchaseDate: 'Today'
       }
     });
 
@@ -130,7 +132,9 @@ export async function GET(request: NextRequest) {
             reasoning: doc.aiRecommendation.reasoning,
             summary: doc.aiRecommendation.summary,
             expectedBetterPriceRange: doc.aiRecommendation.expectedBetterPriceRange,
-            bestPlatform: doc.aiRecommendation.bestPlatform
+            bestPlatform: doc.aiRecommendation.bestPlatform,
+            estimatedSavings: doc.aiRecommendation.estimatedSavings || 0,
+            bestExpectedPurchaseDate: doc.aiRecommendation.bestExpectedPurchaseDate || 'Today'
           }
         };
       })

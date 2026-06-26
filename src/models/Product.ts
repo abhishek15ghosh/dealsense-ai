@@ -14,12 +14,14 @@ export interface IProduct extends Document {
   highestRecordedPrice?: number;
   priceTrend?: 'up' | 'down' | 'stable';
   aiRecommendation: {
-    decision: 'BUY NOW' | 'WAIT' | 'AVOID' | 'BUY_NOW';
+    decision: 'STRONG BUY' | 'BUY NOW' | 'WAIT' | 'STRONG WAIT' | 'HIGH RISK' | 'STRONG_BUY' | 'BUY_NOW' | 'STRONG_WAIT' | 'HIGH_RISK' | 'AVOID';
     confidence: number;
     reasoning: string[];
     summary: string;
     expectedBetterPriceRange?: string;
     bestPlatform?: string;
+    estimatedSavings?: number;
+    bestExpectedPurchaseDate?: string;
   };
   aiPricePrediction?: {
     nextPredictedDropDate?: string;
@@ -45,12 +47,14 @@ const ProductSchema = new Schema<IProduct>({
   highestRecordedPrice: { type: Number },
   priceTrend: { type: String, enum: ['up', 'down', 'stable'], default: 'stable' },
   aiRecommendation: {
-    decision: { type: String, required: true, enum: ['BUY NOW', 'WAIT', 'AVOID', 'BUY_NOW'] },
+    decision: { type: String, required: true, enum: ['STRONG BUY', 'BUY NOW', 'WAIT', 'STRONG WAIT', 'HIGH RISK', 'STRONG_BUY', 'BUY_NOW', 'STRONG_WAIT', 'HIGH_RISK', 'AVOID'] },
     confidence: { type: Number, required: true },
     reasoning: [{ type: String }],
     summary: { type: String, required: true },
     expectedBetterPriceRange: { type: String },
-    bestPlatform: { type: String }
+    bestPlatform: { type: String },
+    estimatedSavings: { type: Number, default: 0 },
+    bestExpectedPurchaseDate: { type: String, default: 'Today' }
   },
   aiPricePrediction: {
     nextPredictedDropDate: { type: String },
