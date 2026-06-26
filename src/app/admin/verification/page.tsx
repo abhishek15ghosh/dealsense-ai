@@ -258,8 +258,8 @@ export default function AdminVerificationPage() {
                 >
                   <option value="Amazon">Amazon India (Full Crawler)</option>
                   <option value="Flipkart">Flipkart India (Full Crawler)</option>
-                  <option value="Croma">Croma (Stub)</option>
-                  <option value="Reliance Digital">Reliance Digital (Stub)</option>
+                  <option value="Croma">Croma (Full Crawler)</option>
+                  <option value="Reliance Digital">Reliance Digital (Full Crawler)</option>
                 </select>
               </div>
 
