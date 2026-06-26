@@ -5,11 +5,12 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('dealsense_token')?.value;
   const { pathname } = request.nextUrl;
 
-  // Protect the dashboard, watchlist, and alerts pages
+  // Protect the dashboard, watchlist, alerts, and settings pages
   if (
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/watchlist') ||
-    pathname.startsWith('/alerts')
+    pathname.startsWith('/alerts') ||
+    pathname.startsWith('/settings')
   ) {
     if (!token) {
       // Redirect to login page
@@ -27,5 +28,6 @@ export const config = {
     '/dashboard/:path*',
     '/watchlist/:path*',
     '/alerts/:path*',
+    '/settings/:path*',
   ],
 };

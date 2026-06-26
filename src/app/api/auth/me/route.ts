@@ -22,6 +22,9 @@ export async function GET(request: NextRequest) {
         id: user._id.toString(),
         name: user.name,
         email: user.email,
+        emailAlertsEnabled: user.emailAlertsEnabled ?? true,
+        preferredRetailers: user.preferredRetailers ?? ['Amazon', 'Flipkart', 'Croma', 'Reliance Digital'],
+        alertFrequency: user.alertFrequency ?? 'instant',
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       }

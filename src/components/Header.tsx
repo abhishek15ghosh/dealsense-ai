@@ -30,6 +30,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     if (pathname.includes('/product/')) return 'Product Intelligence';
     if (pathname.includes('/watchlist')) return 'Watchlist Monitor';
     if (pathname.includes('/alerts')) return 'Smart Alerts';
+    if (pathname.includes('/settings')) return 'User Settings';
     return 'DealSense AI';
   };
 

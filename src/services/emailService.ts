@@ -92,14 +92,41 @@ export async function sendPriceTargetReachedEmail(alert: IAlert, currentPrice: n
     await dbConnect();
     
     // 1. Fetch user to check preference
+    const mongoose = (await import('mongoose')).default;
     const user = await User.findOne({ email: alert.userEmail });
-    if (user && user.emailAlertsEnabled === false) {
-      console.log(`[EMAIL BYPASSED] User ${alert.userEmail} has email alerts disabled.`);
-      return false;
+    if (user) {
+      if (user.emailAlertsEnabled === false) {
+        console.log(`[EMAIL BYPASSED] User ${alert.userEmail} has email alerts disabled.`);
+        return false;
+      }
+
+      // Retailer preference filter
+      const platform = alert.storeName || alert.platform;
+      if (user.preferredRetailers && user.preferredRetailers.length > 0 && platform) {
+        if (!user.preferredRetailers.includes(platform)) {
+          console.log(`[EMAIL BYPASSED] User ${alert.userEmail} has filtered out retailer: ${platform}`);
+          return false;
+        }
+      }
+
+      // Alert frequency filter
+      if (user.alertFrequency === 'daily' || user.alertFrequency === 'weekly') {
+        const EmailLog = mongoose.models.EmailLog || mongoose.model('EmailLog');
+        const intervalMs = user.alertFrequency === 'daily' ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+        const cutoffDate = new Date(Date.now() - intervalMs);
+        const recentEmail = await EmailLog.findOne({
+          to: alert.userEmail,
+          status: 'success',
+          sentAt: { $gte: cutoffDate }
+        });
+        if (recentEmail) {
+          console.log(`[EMAIL BYPASSED] User ${alert.userEmail} has ${user.alertFrequency} frequency limit and was emailed recently.`);
+          return false;
+        }
+      }
     }
 
     // 2. Acquire database lock to prevent duplicate sends (concurrency safe)
-    const mongoose = (await import('mongoose')).default;
     const AlertModel = mongoose.models.Alert || mongoose.model('Alert');
     
     const lockedAlert = await AlertModel.findOneAndUpdate(

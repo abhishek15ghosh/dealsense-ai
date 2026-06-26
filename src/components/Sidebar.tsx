@@ -12,7 +12,8 @@ import {
   LogOut, 
   TrendingUp, 
   User as UserIcon,
-  X
+  X,
+  Settings
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -30,6 +31,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { name: 'Product Search', href: '/search', icon: Search },
     { name: 'Watchlist', href: '/watchlist', icon: Heart },
     { name: 'Price Alerts', href: '/alerts', icon: Bell },
+    { name: 'Settings', href: '/settings', icon: Settings },
     { name: 'Admin Verification', href: '/admin/verification', icon: UserIcon },
   ];
 

@@ -5,6 +5,8 @@ export interface IUser extends Document {
   email: string;
   passwordHash: string;
   emailAlertsEnabled: boolean;
+  preferredRetailers?: string[];
+  alertFrequency?: 'instant' | 'daily' | 'weekly';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -13,7 +15,9 @@ const UserSchema = new Schema<IUser>({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true, index: true },
   passwordHash: { type: String, required: true },
-  emailAlertsEnabled: { type: Boolean, default: true }
+  emailAlertsEnabled: { type: Boolean, default: true },
+  preferredRetailers: { type: [String], default: ['Amazon', 'Flipkart', 'Croma', 'Reliance Digital'] },
+  alertFrequency: { type: String, enum: ['instant', 'daily', 'weekly'], default: 'instant' }
 }, {
   timestamps: true
 });
