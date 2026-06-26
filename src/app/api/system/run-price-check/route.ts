@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runScheduledPriceCheck } from '@/services/schedulerService';
 
-export async function POST(request: NextRequest) {
+async function handlePriceCheck(request: NextRequest) {
   try {
     const cronSecret = process.env.CRON_SECRET;
     
@@ -20,4 +20,12 @@ export async function POST(request: NextRequest) {
     console.error('API Run Price Check Error:', error);
     return NextResponse.json({ success: false, error: errMsg }, { status: 500 });
   }
+}
+
+export async function GET(request: NextRequest) {
+  return handlePriceCheck(request);
+}
+
+export async function POST(request: NextRequest) {
+  return handlePriceCheck(request);
 }
