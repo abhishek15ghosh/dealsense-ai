@@ -231,7 +231,7 @@ export default function PriceChart({ data, forecast = [] }: PriceChartProps) {
       {/* Recharts responsive block */}
       <div className="h-72 w-full">
         {activeTab === 'forecast' ? (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={288}>
             <AreaChart
               data={forecast}
               margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
@@ -289,7 +289,7 @@ export default function PriceChart({ data, forecast = [] }: PriceChartProps) {
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={288}>
             <AreaChart
               data={displayedData}
               margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
