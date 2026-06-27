@@ -16,6 +16,8 @@ export interface IAlert extends Document {
   createdAt: Date;
   triggeredAt?: Date;
   emailSentAt?: Date;
+  emailDeliveryStatus?: 'pending' | 'success' | 'failed' | 'bypassed';
+  emailError?: string;
 
   // New fields for price monitoring engine
   oldPrice?: number;
@@ -40,6 +42,8 @@ const AlertSchema = new Schema<IAlert>({
   createdAt: { type: Date, default: Date.now },
   triggeredAt: { type: Date },
   emailSentAt: { type: Date },
+  emailDeliveryStatus: { type: String, enum: ['pending', 'success', 'failed', 'bypassed'] },
+  emailError: { type: String },
 
   // New fields for price monitoring engine
   oldPrice: { type: Number },

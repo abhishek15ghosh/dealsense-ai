@@ -1,6 +1,7 @@
 import User from '@/models/User';
 import dbConnect from '@/lib/mongodb';
 import { IAlert } from '@/models/Alert';
+import mongoose from 'mongoose';
 
 export interface SendEmailOptions {
   to: string;
@@ -57,10 +58,14 @@ ${html}
       return true;
     } else {
       console.error('[RESEND EMAIL ERROR]:', resData);
+      const { default: Logger } = await import('@/lib/logger');
+      Logger.error(`Resend API returned error status ${response.status}`, resData, 'EMAIL_SERVICE');
       return false;
     }
   } catch (error) {
     console.error('[RESEND EMAIL FETCH EXCEPTION]:', error);
+    const { default: Logger } = await import('@/lib/logger');
+    Logger.error('Fetch exception during email send via Resend', error, 'EMAIL_SERVICE');
     return false;
   }
 }
@@ -91,8 +96,6 @@ export async function sendPriceTargetReachedEmail(alert: IAlert, currentPrice: n
     }
     await dbConnect();
     
-    // 1. Fetch user to check preference
-    const mongoose = (await import('mongoose')).default;
     const user = await User.findOne({ email: alert.userEmail });
     if (user) {
       if (user.emailAlertsEnabled === false) {
@@ -131,7 +134,7 @@ export async function sendPriceTargetReachedEmail(alert: IAlert, currentPrice: n
     
     const lockedAlert = await AlertModel.findOneAndUpdate(
       { _id: alert._id, emailSentAt: { $exists: false } },
-      { $set: { emailSentAt: new Date() } },
+      { $set: { emailSentAt: new Date(), emailDeliveryStatus: 'pending' } },
       { new: true }
     );
 
@@ -208,16 +211,43 @@ export async function sendPriceTargetReachedEmail(alert: IAlert, currentPrice: n
 
     if (!success) {
       // Revert database lock so it can be retried on next scheduler run
-      await AlertModel.updateOne({ _id: alert._id }, { $unset: { emailSentAt: "" } });
+      await AlertModel.updateOne(
+        { _id: alert._id }, 
+        { 
+          $unset: { emailSentAt: "" },
+          $set: { emailDeliveryStatus: 'failed', emailError: 'Resend API call returned failure or timed out' }
+        }
+      );
       return false;
     }
 
+    // Update to success
+    await AlertModel.updateOne(
+      { _id: alert._id },
+      { $set: { emailDeliveryStatus: 'success', emailError: '' } }
+    );
+
     // Sync object in-memory with locked document
     alert.emailSentAt = lockedAlert.emailSentAt;
+    alert.emailDeliveryStatus = 'success';
     return true;
 
   } catch (error) {
     console.error('Error sending price target email:', error);
+    try {
+      const AlertModel = mongoose.models.Alert || mongoose.model('Alert');
+      await AlertModel.updateOne(
+        { _id: alert._id },
+        { 
+          $unset: { emailSentAt: "" },
+          $set: { emailDeliveryStatus: 'failed', emailError: error instanceof Error ? error.message : String(error) }
+        }
+      );
+    } catch (dbErr) {
+      console.error('[Email Service] Failed to revert email lock on exception:', dbErr);
+    }
+    const { default: Logger } = await import('@/lib/logger');
+    Logger.error('Exception inside sendPriceTargetReachedEmail', error, 'EMAIL_SERVICE');
     return false;
   }
 }
