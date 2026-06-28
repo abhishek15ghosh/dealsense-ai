@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useApp } from '@/context/AppContext';
+import { useApp, AppNotification } from '@/context/AppContext';
 import { mockProducts } from '@/data/mockProducts';
 import DashboardLayout from '@/components/DashboardLayout';
 import Image from 'next/image';
@@ -196,6 +196,17 @@ export default function Dashboard() {
       return () => clearTimeout(timer);
     }
   }, [toastMessage]);
+
+  const handleNotificationClick = (notify: AppNotification) => {
+    if (!notify.read) {
+      markAsRead(notify.id);
+    }
+    if (notify.productId) {
+      router.push(`/product/${notify.productId}`);
+    } else if (notify.type === 'price_drop' || notify.type === 'alert_triggered') {
+      router.push('/alerts');
+    }
+  };
 
   const handleRunPriceCheck = async () => {
     setRunningCheck(true);
@@ -681,14 +692,11 @@ export default function Dashboard() {
                 </div>
               ) : (
                 notifications.slice(0, 5).map((notify) => {
-                  const isUnread = !notify.read;
                   return (
                     <div 
                       key={notify.id} 
-                      onClick={() => isUnread && markAsRead(notify.id)}
-                      className={`py-3 flex items-start space-x-3 text-left first:pt-0 last:pb-0 transition duration-150 relative ${
-                        isUnread ? 'cursor-pointer hover:bg-slate-50/50' : ''
-                      }`}
+                      onClick={() => handleNotificationClick(notify)}
+                      className="py-3 flex items-start space-x-3 text-left first:pt-0 last:pb-0 transition duration-150 relative cursor-pointer hover:bg-slate-50/50"
                     >
                       <div className="mt-0.5 flex-shrink-0">
                         {notify.type === 'price_drop' && <ArrowDown size={14} className="text-red-500" />}
@@ -717,7 +725,7 @@ export default function Dashboard() {
                         </p>
                       </div>
 
-                      {isUnread && (
+                      {!notify.read && (
                         <span className="absolute top-4 right-1 h-1.5 w-1.5 rounded-full bg-blue-600" />
                       )}
                     </div>

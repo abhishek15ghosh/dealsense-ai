@@ -31,7 +31,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     setShowNotifications(false);
     if (notify.productId) {
       router.push(`/product/${notify.productId}`);
-    } else if (notify.type === 'alert_triggered') {
+    } else if (notify.type === 'price_drop' || notify.type === 'alert_triggered') {
       router.push('/alerts');
     }
   };
