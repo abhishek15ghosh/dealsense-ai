@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import ProductSource from '@/models/ProductSource';
 import { runScheduledPriceCheck } from '@/services/schedulerService';
+import { mockProducts } from '@/data/mockProducts';
 
 export const dynamic = 'force-dynamic';
 
 interface MigrationResult {
+  productId: string;
   platform: string;
   matched: number;
   modified: number;
@@ -16,36 +18,32 @@ export async function GET() {
   try {
     await dbConnect();
     
-    const realUrls = {
-      Amazon: 'https://www.amazon.in/dp/B0B1TV8B39',
-      Flipkart: 'https://www.flipkart.com/sony-wh-1000xm5-designed-adaptive-anc-30-hours-battery-life-bluetooth-wired-headset/p/itm549646b90f4d3',
-      Croma: 'https://www.croma.com/sony-wh-1000xm5-bluetooth-headphone-with-mic-auto-noise-cancellation-optimizer-over-ear-black-/p/257321',
-      'Reliance Digital': 'https://www.reliancedigital.in/sony-wh-1000xm5-wireless-industry-leading-active-noise-cancelling-headphones-black/p/492850913'
-    };
-
     const results: MigrationResult[] = [];
 
-    for (const [platform, url] of Object.entries(realUrls)) {
-      const query = {
-        productId: 'sony-wh-1000xm5',
-        platform: platform
-      };
+    for (const product of mockProducts) {
+      for (const priceObj of product.prices) {
+        const query = {
+          productId: product.id,
+          platform: priceObj.storeName
+        };
 
-      const updateDoc = {
-        $set: {
-          productUrl: url,
-          active: true,
-          status: 'Success'
-        }
-      };
+        const updateDoc = {
+          $set: {
+            productUrl: priceObj.url,
+            active: true,
+            status: 'Success'
+          }
+        };
 
-      const result = await ProductSource.updateOne(query, updateDoc, { upsert: true });
-      results.push({
-        platform,
-        matched: result.matchedCount,
-        modified: result.modifiedCount,
-        upserted: result.upsertedCount
-      });
+        const result = await ProductSource.updateOne(query, updateDoc, { upsert: true });
+        results.push({
+          productId: product.id,
+          platform: priceObj.storeName,
+          matched: result.matchedCount,
+          modified: result.modifiedCount,
+          upserted: result.upsertedCount
+        });
+      }
     }
 
     // Trigger scheduled price checking scan

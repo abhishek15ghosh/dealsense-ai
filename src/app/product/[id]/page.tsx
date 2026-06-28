@@ -89,6 +89,12 @@ export default function ProductDetailsPage({ params }: PageProps) {
   const [alertStore, setAlertStore] = useState<string>('Amazon');
   const [alertSuccess, setAlertSuccess] = useState(false);
 
+  const isValidUrl = (url?: string) => {
+    if (!url) return false;
+    const lowerUrl = url.toLowerCase();
+    return lowerUrl.startsWith('http') && !lowerUrl.includes('mock');
+  };
+
   useEffect(() => {
     let active = true;
     
@@ -550,15 +556,19 @@ export default function ProductDetailsPage({ params }: PageProps) {
                         {storePrice.inStock ? `${storePrice.deliveryDays} Day Delivery` : '--'}
                       </td>
                       <td className="py-4 text-right">
-                        <a
-                          href={storePrice.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-700 font-bold"
-                        >
-                          <span>Visit Store</span>
-                          <ExternalLink size={12} />
-                        </a>
+                        {isValidUrl(storePrice.url) ? (
+                          <a
+                            href={storePrice.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-700 font-bold"
+                          >
+                            <span>Visit Store</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px]">Unavailable</span>
+                        )}
                       </td>
                     </tr>
                   );
