@@ -6,6 +6,20 @@ import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { mockProducts } from '@/data/mockProducts';
 import DashboardLayout from '@/components/DashboardLayout';
+import Image from 'next/image';
+
+interface TriggeredAlert {
+  id: string;
+  productId: string;
+  productName: string;
+  productImage: string;
+  storeName: string;
+  oldPrice: number;
+  newPrice: number;
+  savings: number;
+  targetPrice?: number;
+  triggeredAt?: string;
+}
 import { 
   Search, 
   Heart, 
@@ -154,6 +168,7 @@ export default function Dashboard() {
   } | null>(null);
   const [runningCheck, setRunningCheck] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [latestTriggered, setLatestTriggered] = useState<TriggeredAlert[]>([]);
 
   // Fetch scheduler status on mount
   useEffect(() => {
@@ -185,10 +200,12 @@ export default function Dashboard() {
   const handleRunPriceCheck = async () => {
     setRunningCheck(true);
     setToastMessage(null);
+    setLatestTriggered([]);
     try {
       const res = await fetch('/api/system/trigger-price-check', { method: 'POST' });
       const resData = await res.json();
       if (resData.success) {
+        setLatestTriggered(resData.triggeredAlerts || []);
         setToastMessage({
           type: 'success',
           text: `Price check completed! Checked ${resData.data.alertsChecked} alerts, triggered ${resData.data.alertsTriggered}.`
@@ -424,6 +441,78 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+      {/* Latest Triggered Alerts Section */}
+      {latestTriggered.length > 0 && (
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+          <div className="flex items-center space-x-2 pb-1 border-b border-slate-100">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
+            <h3 className="font-display font-bold text-slate-800 text-sm">Latest Triggered Alerts</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {latestTriggered.map((alert) => (
+              <div 
+                key={alert.id}
+                className="bg-red-50/5 border border-red-100 rounded-3xl p-5 shadow-sm transition duration-200 flex flex-col justify-between space-y-4 hover:shadow-md"
+              >
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[9px] font-extrabold uppercase text-slate-400">
+                      Platform: {alert.storeName}
+                    </span>
+                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg text-[9px] font-bold bg-red-50 text-red-700 border border-red-100">
+                      <CheckCircle2 size={10} />
+                      <span>Triggered</span>
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 p-2 flex items-center justify-center flex-shrink-0">
+                      <Image 
+                        src={alert.productImage || `/images/${alert.productId}.png`} 
+                        alt={alert.productName}
+                        width={48}
+                        height={48}
+                        className="object-contain max-h-full max-w-full"
+                      />
+                    </div>
+                    <Link 
+                      href={`/product/${alert.productId}`}
+                      className="font-display font-extrabold text-xs text-slate-800 hover:text-blue-600 transition line-clamp-2 leading-snug"
+                    >
+                      {alert.productName}
+                    </Link>
+                  </div>
+
+                  <div className="border-t border-slate-100 pt-3 grid grid-cols-3 gap-2 text-xs font-semibold">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Old Price</span>
+                      <p className="text-slate-500 line-through">
+                        ₹{alert.oldPrice?.toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">New Price</span>
+                      <p className="text-green-600 font-extrabold">
+                        ₹{alert.newPrice?.toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Savings</span>
+                      <p className="text-blue-650 font-black">
+                        ₹{alert.savings?.toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toastMessage && (

@@ -6,11 +6,13 @@ export async function createNotification(
   userId: string,
   title: string,
   message: string,
-  type: 'price_drop' | 'alert_triggered' | 'ai_recommendation' | 'system'
+  type: 'price_drop' | 'alert_triggered' | 'ai_recommendation' | 'system',
+  productId?: string
 ): Promise<INotification> {
   await dbConnect();
   return await Notification.create({
     userId,
+    productId,
     title,
     message,
     type,
@@ -59,7 +61,8 @@ export async function triggerWatchlistNotificationForBuyNow(productId: string, p
         w.userEmail,
         'Strong Buying Opportunity',
         `${productName} is currently near its historical low price.`,
-        'ai_recommendation'
+        'ai_recommendation',
+        productId
       );
     }
   }

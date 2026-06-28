@@ -72,7 +72,8 @@ export async function trackProductPrices(): Promise<TrackingStats> {
                     w.userEmail,
                     "Price Drop Detected",
                     `Price dropped by ${dropPercent}% since last recorded scan.`,
-                    "price_drop"
+                    "price_drop",
+                    customId
                   );
                 }
               }
@@ -181,7 +182,8 @@ export async function trackProductPrices(): Promise<TrackingStats> {
               alert.userEmail,
               "Price Target Reached",
               `${product.name} is now ₹${latestPrice.toLocaleString('en-IN')} and has reached your target price of ₹${alert.targetPrice.toLocaleString('en-IN')}.`,
-              "alert_triggered"
+              "alert_triggered",
+              customId
             );
 
             // Trigger email if not already sent

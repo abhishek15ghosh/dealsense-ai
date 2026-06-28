@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { usePathname } from 'next/navigation';
-import { useApp } from '@/context/AppContext';
+import { usePathname, useRouter } from 'next/navigation';
+import { useApp, AppNotification } from '@/context/AppContext';
 import { 
   Bell, 
   Menu, 
@@ -20,8 +20,21 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { notifications, clearNotifications, markAsRead, markAllAsRead, alerts } = useApp();
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const handleNotificationClick = (notify: AppNotification) => {
+    if (!notify.read) {
+      markAsRead(notify.id);
+    }
+    setShowNotifications(false);
+    if (notify.productId) {
+      router.push(`/product/${notify.productId}`);
+    } else if (notify.type === 'alert_triggered') {
+      router.push('/alerts');
+    }
+  };
 
   // Get Page Title from Pathname
   const getPageTitle = () => {
@@ -153,10 +166,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     notifications.map((notify) => (
                       <div 
                         key={notify.id} 
-                        onClick={() => !notify.read && markAsRead(notify.id)}
-                        className={`p-4 transition duration-150 relative flex items-start space-x-3 text-left ${
+                        onClick={() => handleNotificationClick(notify)}
+                        className={`p-4 transition duration-150 relative flex items-start space-x-3 text-left cursor-pointer ${
                           !notify.read 
-                            ? 'bg-blue-50/10 hover:bg-blue-50/20 cursor-pointer' 
+                            ? 'bg-blue-50/10 hover:bg-blue-50/20' 
                             : 'hover:bg-slate-50/80'
                         }`}
                       >

@@ -30,6 +30,7 @@ export interface PriceAlert {
 export interface AppNotification {
   id: string;
   userId?: string;
+  productId?: string;
   title: string;
   message: string;
   timestamp: Date;
@@ -188,9 +189,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .then(res => res.json())
       .then(resData => {
         if (resData.success && resData.data && resData.data.length > 0) {
-          const mapped = resData.data.map((n: AppNotification) => ({
+          interface RawNotification {
+            id: string;
+            userId: string;
+            productId?: string;
+            title: string;
+            message: string;
+            type: AppNotification['type'];
+            isRead: boolean;
+            createdAt?: string;
+          }
+          const mapped = resData.data.map((n: RawNotification) => ({
             id: n.id,
             userId: n.userId,
+            productId: n.productId,
             title: n.title,
             message: n.message,
             timestamp: new Date(n.createdAt || new Date()),

@@ -10,6 +10,7 @@ import { Bell, Search, Trash2, CheckCircle2, AlertCircle, ArrowUpRight } from 'l
 
 export default function AlertsPage() {
   const { alerts, removeAlert, markAllAlertsAsRead } = useApp();
+  const [activeTab, setActiveTab] = React.useState<'all' | 'latest' | 'active' | 'triggered'>('all');
 
   // Automatically mark all alerts as read when visiting the alerts page
   React.useEffect(() => {
@@ -38,6 +39,39 @@ export default function AlertsPage() {
     const isTriggered = a.status === 'triggered' || (a.targetPrice !== undefined && currentPrice <= a.targetPrice);
     return a.status === 'triggered' || (a.status === 'active' && isTriggered);
   });
+
+  const now = new Date();
+  const latestTriggeredAlerts = alerts.filter(a => {
+    const isTriggered = a.oldPrice !== undefined || a.status === 'triggered';
+    if (!isTriggered) return false;
+    
+    // Check if triggered or created in the last 24 hours
+    const triggeredTime = a.triggeredAt ? new Date(a.triggeredAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+    return now.getTime() - triggeredTime <= 24 * 60 * 60 * 1000;
+  });
+
+  const getFilteredAlerts = () => {
+    switch (activeTab) {
+      case 'latest':
+        return latestTriggeredAlerts;
+      case 'active':
+        return activeAlerts;
+      case 'triggered':
+        return triggeredAlerts;
+      case 'all':
+      default:
+        return alerts;
+    }
+  };
+
+  const filteredAlerts = getFilteredAlerts();
+
+  const isAlertTriggered = (a: typeof alerts[0]) => {
+    if (a.oldPrice !== undefined) return true;
+    const product = mockProducts.find(p => p.id === a.productId);
+    const currentPrice = a.currentPrice || (product ? product.bestDealPrice : a.currentPriceAtSet);
+    return a.status === 'triggered' || (a.targetPrice !== undefined && currentPrice <= a.targetPrice);
+  };
 
   const renderAlertCard = (alert: typeof alerts[0], isTriggered: boolean) => {
     // Look up current product best price
@@ -71,13 +105,13 @@ export default function AlertsPage() {
               <span>{isPriceDropAlert ? 'Price Drop' : isTriggered ? 'Triggered' : 'Monitoring'}</span>
             </span>
           </div>
-
+ 
           {/* Info */}
           <div className="flex items-center space-x-4">
             <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 p-2 flex items-center justify-center flex-shrink-0">
               <Image 
                 src={resolvedImage} 
-                alt={alert.productName} 
+                alt={alert.productName || 'Product'} 
                 width={48}
                 height={48}
                 className="object-contain max-h-full max-w-full"
@@ -90,7 +124,7 @@ export default function AlertsPage() {
               {alert.productName}
             </Link>
           </div>
-
+ 
           {/* Threshold Matrix / Price Info */}
           {isPriceDropAlert ? (
             <div className="border-t border-slate-100 pt-3 grid grid-cols-3 gap-2 text-xs font-semibold">
@@ -130,7 +164,7 @@ export default function AlertsPage() {
             </div>
           )}
         </div>
-
+ 
         {/* Buttons */}
         <div className="border-t border-slate-100 pt-3 flex gap-2">
           <button
@@ -152,7 +186,7 @@ export default function AlertsPage() {
       </div>
     );
   };
-
+ 
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -164,7 +198,7 @@ export default function AlertsPage() {
             Manage alerts and notifications of target price drop events
           </p>
         </div>
-
+ 
         {alerts.length === 0 ? (
           <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center space-y-4 max-w-xl mx-auto shadow-sm">
             <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
@@ -183,28 +217,88 @@ export default function AlertsPage() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-8">
-            {/* Active alerts section */}
-            {activeAlerts.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="font-display font-bold text-sm text-slate-600 uppercase tracking-widest pl-1">
-                  Active Monitoring ({activeAlerts.length})
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {activeAlerts.map(a => renderAlertCard(a, false))}
+          <div className="space-y-6">
+            {/* Tabs Filter Bar */}
+            <div className="flex flex-wrap border-b border-slate-200 gap-6 pb-2">
+              <button
+                onClick={() => setActiveTab('all')}
+                className={`pb-3 text-xs font-bold uppercase tracking-wider border-b-2 cursor-pointer transition flex items-center space-x-1.5 ${
+                  activeTab === 'all'
+                    ? 'border-blue-600 text-blue-600 font-extrabold'
+                    : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                <span>All Alerts</span>
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                  activeTab === 'all' ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-500'
+                }`}>
+                  {alerts.length}
+                </span>
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('latest')}
+                className={`pb-3 text-xs font-bold uppercase tracking-wider border-b-2 cursor-pointer transition flex items-center space-x-1.5 ${
+                  activeTab === 'latest'
+                    ? 'border-blue-600 text-blue-600 font-extrabold'
+                    : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                <span>Latest Triggered</span>
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                  activeTab === 'latest' ? 'bg-red-50 text-red-700' : 'bg-slate-50 text-slate-500'
+                }`}>
+                  {latestTriggeredAlerts.length}
+                </span>
+              </button>
+ 
+              <button
+                onClick={() => setActiveTab('active')}
+                className={`pb-3 text-xs font-bold uppercase tracking-wider border-b-2 cursor-pointer transition flex items-center space-x-1.5 ${
+                  activeTab === 'active'
+                    ? 'border-blue-600 text-blue-600 font-extrabold'
+                    : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                <span>Active Alerts</span>
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                  activeTab === 'active' ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-500'
+                }`}>
+                  {activeAlerts.length}
+                </span>
+              </button>
+ 
+              <button
+                onClick={() => setActiveTab('triggered')}
+                className={`pb-3 text-xs font-bold uppercase tracking-wider border-b-2 cursor-pointer transition flex items-center space-x-1.5 ${
+                  activeTab === 'triggered'
+                    ? 'border-blue-600 text-blue-600 font-extrabold'
+                    : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                <span>Triggered Alerts</span>
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                  activeTab === 'triggered' ? 'bg-green-50 text-green-700' : 'bg-slate-50 text-slate-500'
+                }`}>
+                  {triggeredAlerts.length}
+                </span>
+              </button>
+            </div>
+ 
+            {/* Filtered Alerts Cards Grid */}
+            {filteredAlerts.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center space-y-4 max-w-xl mx-auto shadow-sm">
+                <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                  <Bell size={20} />
                 </div>
+                <h3 className="font-display font-bold text-sm text-slate-700">No Alerts Found</h3>
+                <p className="text-slate-400 text-xs max-w-sm mx-auto leading-relaxed">
+                  There are no alerts matching the selected tab filter.
+                </p>
               </div>
-            )}
-
-            {/* Triggered alerts section */}
-            {triggeredAlerts.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="font-display font-bold text-sm text-green-700 uppercase tracking-widest pl-1">
-                  Triggered Deals ({triggeredAlerts.length})
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {triggeredAlerts.map(a => renderAlertCard(a, true))}
-                </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredAlerts.map(a => renderAlertCard(a, isAlertTriggered(a)))}
               </div>
             )}
           </div>

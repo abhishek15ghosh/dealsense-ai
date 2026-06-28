@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
       data: notifications.map(n => ({
         id: n._id.toString(),
         userId: n.userId,
+        productId: n.productId,
         title: n.title,
         message: n.message,
         type: n.type,

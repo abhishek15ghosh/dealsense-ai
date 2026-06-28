@@ -4,6 +4,7 @@ import Product from '@/models/Product';
 import ProductSource from '@/models/ProductSource';
 import PriceHistory from '@/models/PriceHistory';
 import Alert from '@/models/Alert';
+import Notification from '@/models/Notification';
 import { fetchPriceForRetailer } from '@/services/retailerPriceService';
 
 export async function runPriceMonitoringEngine() {
@@ -188,38 +189,60 @@ export async function runPriceMonitoringEngine() {
         // Find all watchers of this product
         const watchers = watchlistItems.filter((w) => w.productId === productId);
         for (const watcher of watchers) {
-          // Create price drop Alert record
-          await Alert.create({
-            userId: watcher.userEmail,
+          // Check if an alert was already triggered for this product/user with the exact same price
+          const duplicateAlert = await Alert.findOne({
             userEmail: watcher.userEmail,
             productId,
-            productName,
-            productImage: watcher.productImage || (productDoc ? productDoc.image : `/images/${productId}.png`),
-            targetPrice: 0,
-            currentPriceAtSet: oldPrice || (productDoc ? productDoc.bestDealPrice : newPrice),
-            currentPrice: newPrice,
-            storeName: retailer,
-            platform: retailer,
-            oldPrice,
             newPrice,
-            savings,
-            read: false,
-            isTriggered: true,
-            status: 'triggered',
-            createdAt: new Date()
-          });
+            status: 'triggered'
+          }).exec();
 
-          alertsCreated++;
+          if (!duplicateAlert) {
+            // Create price drop Alert record
+            await Alert.create({
+              userId: watcher.userEmail,
+              userEmail: watcher.userEmail,
+              productId,
+              productName,
+              productImage: watcher.productImage || (productDoc ? productDoc.image : `/images/${productId}.png`),
+              targetPrice: 0,
+              currentPriceAtSet: oldPrice || (productDoc ? productDoc.bestDealPrice : newPrice),
+              currentPrice: newPrice,
+              storeName: retailer,
+              platform: retailer,
+              oldPrice,
+              newPrice,
+              savings,
+              read: false,
+              isTriggered: true,
+              status: 'triggered',
+              triggeredAt: new Date(),
+              createdAt: new Date()
+            });
+
+            alertsCreated++;
+          }
 
           // Create standard in-app notification
           try {
             const { createNotification } = await import('@/services/notificationService');
-            await createNotification(
-              watcher.userEmail,
-              "Price Drop Detected",
-              `Price dropped for ${productName} by ₹${savings.toLocaleString('en-IN')}. Current price is ₹${newPrice.toLocaleString('en-IN')}.`,
-              "price_drop"
-            );
+            // Check if notification already exists to avoid duplicates
+            const existingNotification = await Notification.findOne({
+              userId: watcher.userEmail,
+              productId,
+              type: 'price_drop',
+              message: { $regex: newPrice.toString() }
+            }).exec();
+
+            if (!existingNotification) {
+              await createNotification(
+                watcher.userEmail,
+                "Price Drop Detected",
+                `Price dropped for ${productName} by ₹${savings.toLocaleString('en-IN')}. Current price is ₹${newPrice.toLocaleString('en-IN')}.`,
+                "price_drop",
+                productId
+              );
+            }
           } catch (notifErr) {
             console.error('[Monitoring Engine] Notification trigger failed:', notifErr);
           }
