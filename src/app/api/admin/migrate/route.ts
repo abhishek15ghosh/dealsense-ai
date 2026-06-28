@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import ProductSource from '@/models/ProductSource';
+import { runScheduledPriceCheck } from '@/services/schedulerService';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,10 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({ success: true, results }, { status: 200 });
+    // Trigger scheduled price checking scan
+    const stats = await runScheduledPriceCheck();
+
+    return NextResponse.json({ success: true, results, stats }, { status: 200 });
   } catch (error) {
     const err = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ success: false, error: err }, { status: 500 });
