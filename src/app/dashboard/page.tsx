@@ -186,7 +186,7 @@ export default function Dashboard() {
     setRunningCheck(true);
     setToastMessage(null);
     try {
-      const res = await fetch('/api/system/run-price-check', { method: 'POST' });
+      const res = await fetch('/api/system/trigger-price-check', { method: 'POST' });
       const resData = await res.json();
       if (resData.success) {
         setToastMessage({

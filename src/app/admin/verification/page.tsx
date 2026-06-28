@@ -261,7 +261,7 @@ export default function AdminVerificationPage() {
     setErrorMessage('');
     setSuccessMessage('');
     try {
-      const res = await fetch('/api/system/run-price-check', {
+      const res = await fetch('/api/system/trigger-price-check', {
         method: 'POST'
       });
       const data = await res.json();
