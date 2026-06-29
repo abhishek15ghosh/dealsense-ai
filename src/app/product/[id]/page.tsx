@@ -29,6 +29,7 @@ interface ProductPrice {
   inStock: boolean;
   deliveryDays: number;
   status?: string;
+  lastChecked?: string;
 }
 
 interface ProductPriceHistory {
@@ -89,6 +90,27 @@ export default function ProductDetailsPage({ params }: PageProps) {
   const [targetPrice, setTargetPrice] = useState<string>('');
   const [alertStore, setAlertStore] = useState<string>('Amazon');
   const [alertSuccess, setAlertSuccess] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefreshPrices = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch('/api/system/trigger-price-check', {
+        method: 'POST',
+      });
+      if (res.ok) {
+        const prodRes = await fetch(`/api/products/${id}`);
+        const prodData = await prodRes.json();
+        if (prodData.success && prodData.data) {
+          setProduct(prodData.data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to refresh prices:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const isValidUrl = (url?: string) => {
     if (!url) return false;
@@ -251,8 +273,25 @@ export default function ProductDetailsPage({ params }: PageProps) {
   };
 
   const aiStyles = getAiCardColor(product.aiRecommendation.decision);
-  const originalPrice = product.prices.length > 0 ? product.prices[0].originalPrice : product.bestDealPrice;
-  const currentBestPrice = product.bestDealPrice;
+  const verifiedPrices = product.prices.filter(p => p.status === 'Success' && p.price > 0);
+  const isBestPriceAvailable = verifiedPrices.length > 0;
+  
+  let currentBestPrice = product.bestDealPrice;
+  let bestDealStore = product.bestDealStore;
+  let originalPrice = product.prices.length > 0 ? product.prices[0].originalPrice : product.bestDealPrice;
+
+  if (isBestPriceAvailable) {
+    let best = verifiedPrices[0];
+    for (const p of verifiedPrices) {
+      if (p.price < best.price) {
+        best = p;
+      }
+    }
+    currentBestPrice = best.price;
+    bestDealStore = best.storeName;
+    originalPrice = best.originalPrice;
+  }
+
   const savingAmount = originalPrice - currentBestPrice;
   const savingPct = originalPrice > 0 ? Math.round((savingAmount / originalPrice) * 100) : 0;
 
@@ -331,16 +370,26 @@ export default function ProductDetailsPage({ params }: PageProps) {
             </p>
 
             <div className="border-t border-slate-100 pt-4 flex flex-wrap items-baseline gap-x-4 gap-y-2">
-              <span className="text-[10px] font-extrabold uppercase text-slate-400 block w-full">Best Current Retail Value</span>
-              <span className="text-3xl font-black text-slate-800 font-display">
-                ₹{currentBestPrice.toLocaleString('en-IN')}
+              <span className="text-[10px] font-extrabold uppercase text-slate-400 block w-full">
+                Best Current Retail Value {isBestPriceAvailable ? `(${bestDealStore})` : ''}
               </span>
-              <span className="text-slate-400 line-through text-sm">
-                MSRP ₹{originalPrice.toLocaleString('en-IN')}
-              </span>
-              <span className="text-green-600 font-bold text-sm bg-green-50 px-2 py-0.5 rounded-lg border border-green-100/60">
-                Saved ₹{savingAmount.toLocaleString('en-IN')} ({savingPct}%)
-              </span>
+              {isBestPriceAvailable ? (
+                <>
+                  <span className="text-3xl font-black text-slate-800 font-display">
+                    ₹{currentBestPrice.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-slate-400 line-through text-sm">
+                    MSRP ₹{originalPrice.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-green-600 font-bold text-sm bg-green-50 px-2 py-0.5 rounded-lg border border-green-100/60">
+                    Saved ₹{savingAmount.toLocaleString('en-IN')} ({savingPct}%)
+                  </span>
+                </>
+              ) : (
+                <span className="text-xl font-bold text-slate-400 italic">
+                  Price unavailable
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-4 border-t border-slate-100 pt-4 mt-2">
@@ -503,13 +552,33 @@ export default function ProductDetailsPage({ params }: PageProps) {
         
         {/* Left Column: Price Comparison Matrix Table (8 Columns) */}
         <div className="lg:col-span-8 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <div>
-            <h3 className="font-display font-bold text-lg text-slate-800">
-              Live Store Price Matrix
-            </h3>
-            <p className="text-slate-400 text-xs mt-0.5">
-              Current listing details across Indian retail portals
-            </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="font-display font-bold text-lg text-slate-800">
+                Live Store Price Matrix
+              </h3>
+              <p className="text-slate-400 text-xs mt-0.5">
+                Current listing details across Indian retail portals
+              </p>
+            </div>
+            <button
+              onClick={handleRefreshPrices}
+              disabled={refreshing}
+              className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                refreshing
+                  ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
+                  : 'bg-blue-50 border-blue-100 text-blue-600 hover:bg-blue-100/60'
+              }`}
+            >
+              {refreshing ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-slate-400" />
+                  <span>Refreshing...</span>
+                </>
+              ) : (
+                <span>Refresh Prices</span>
+              )}
+            </button>
           </div>
 
           <div className="overflow-x-auto">
@@ -519,13 +588,14 @@ export default function ProductDetailsPage({ params }: PageProps) {
                   <th className="pb-3 font-semibold">Store</th>
                   <th className="pb-3 font-semibold text-right">Price</th>
                   <th className="pb-3 font-semibold text-center">Status</th>
+                  <th className="pb-3 font-semibold text-center">Last Checked</th>
                   <th className="pb-3 font-semibold text-center">Shipping</th>
                   <th className="pb-3 font-semibold text-right">Link</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                 {product.prices.map((storePrice: ProductPrice) => {
-                  const isBest = storePrice.storeName === product.bestDealStore;
+                  const isBest = storePrice.storeName === bestDealStore;
                   return (
                     <tr key={storePrice.storeName} className={`hover:bg-slate-50 transition duration-150 ${isBest ? 'bg-blue-50/20' : ''}`}>
                       <td className="py-4 font-bold flex items-center space-x-2">
@@ -537,26 +607,44 @@ export default function ProductDetailsPage({ params }: PageProps) {
                           'bg-[#3b82f6]'
                         }`} />
                         <span>{storePrice.storeName}</span>
-                        {isBest && (
+                        {isBest && isBestPriceAvailable && (
                           <span className="inline-block px-1.5 py-0.5 bg-blue-600 text-white rounded text-[8px] font-black uppercase tracking-wider">
                             Best Deal
                           </span>
                         )}
                       </td>
                       <td className="py-4 text-right font-black text-slate-800">
-                        ₹{storePrice.price.toLocaleString('en-IN')}
+                        {refreshing ? (
+                          <span className="text-slate-400 animate-pulse text-[11px]">Updating...</span>
+                        ) : storePrice.status === 'Failed' ? (
+                          <span className="text-slate-400 font-medium italic text-[11px]">Price unavailable</span>
+                        ) : (
+                          `₹${storePrice.price.toLocaleString('en-IN')}`
+                        )}
                       </td>
                       <td className="py-4 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                          storePrice.inStock
-                            ? 'bg-green-50 text-green-700 border border-green-100'
-                            : 'bg-red-50 text-red-700 border border-red-100'
+                          storePrice.status === 'Failed'
+                            ? 'bg-slate-50 text-slate-500 border border-slate-200/50'
+                            : storePrice.inStock
+                              ? 'bg-green-50 text-green-700 border border-green-100'
+                              : 'bg-red-50 text-red-700 border border-red-100'
                         }`}>
-                          {storePrice.inStock ? 'In Stock' : 'Out of Stock'}
+                          {storePrice.status === 'Failed' ? 'N/A' : (storePrice.inStock ? 'In Stock' : 'Out of Stock')}
                         </span>
                       </td>
+                      <td className="py-4 text-center text-slate-500 text-[10px]">
+                        {storePrice.lastChecked
+                          ? new Date(storePrice.lastChecked).toLocaleString('en-IN', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              month: 'short',
+                              day: 'numeric'
+                            })
+                          : 'Never'}
+                      </td>
                       <td className="py-4 text-center text-slate-400">
-                        {storePrice.inStock ? `${storePrice.deliveryDays} Day Delivery` : '--'}
+                        {storePrice.status === 'Failed' ? '--' : (storePrice.inStock ? `${storePrice.deliveryDays} Day Delivery` : '--')}
                       </td>
                       <td className="py-4 text-right">
                         {isValidUrl(storePrice.url) && storePrice.status !== 'Failed' ? (

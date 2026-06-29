@@ -60,6 +60,8 @@ export async function GET(request: NextRequest) {
             originalPrice: s.originalPrice,
             url: s.productUrl,
             inStock: s.availability === 'In Stock',
+            status: s.status,
+            lastChecked: s.lastChecked,
             deliveryDays: s.platform.includes('D2C') ? 3 : (s.platform === 'Amazon' ? 1 : 2)
           })),
           priceHistory: history.map((h) => {
