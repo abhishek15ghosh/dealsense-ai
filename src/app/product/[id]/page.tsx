@@ -273,7 +273,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
   };
 
   const aiStyles = getAiCardColor(product.aiRecommendation.decision);
-  const verifiedPrices = product.prices.filter(p => p.status === 'Success' && p.price > 0);
+  const verifiedPrices = product.prices.filter(p => p.status === 'Success' && p.price > 0 && isValidUrl(p.url));
   const isBestPriceAvailable = verifiedPrices.length > 0;
   
   let currentBestPrice = product.bestDealPrice;
@@ -387,7 +387,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
                 </>
               ) : (
                 <span className="text-xl font-bold text-slate-400 italic">
-                  Price unavailable
+                  Live price currently unavailable
                 </span>
               )}
             </div>
