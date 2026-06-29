@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import ProductSource from '@/models/ProductSource';
+import Product from '@/models/Product';
 import { runScheduledPriceCheck } from '@/services/schedulerService';
 import { mockProducts } from '@/data/mockProducts';
 
@@ -21,6 +22,22 @@ export async function GET() {
     const results: MigrationResult[] = [];
 
     for (const product of mockProducts) {
+      // Update core Product document
+      await Product.updateOne(
+        { customId: product.id },
+        {
+          $set: {
+            name: product.name,
+            description: product.description,
+            bestDealPrice: product.bestDealPrice,
+            bestDealStore: product.bestDealStore,
+            rating: product.rating,
+            reviewsCount: product.reviewsCount
+          }
+        },
+        { upsert: true }
+      );
+
       for (const priceObj of product.prices) {
         const query = {
           productId: product.id,
@@ -30,6 +47,9 @@ export async function GET() {
         const updateDoc = {
           $set: {
             productUrl: priceObj.url,
+            currentPrice: priceObj.price,
+            originalPrice: priceObj.originalPrice,
+            availability: priceObj.inStock ? 'In Stock' : 'Out of Stock',
             active: true,
             status: 'Success'
           }

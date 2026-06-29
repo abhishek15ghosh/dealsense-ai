@@ -28,6 +28,7 @@ interface ProductPrice {
   url: string;
   inStock: boolean;
   deliveryDays: number;
+  status?: string;
 }
 
 interface ProductPriceHistory {
@@ -92,7 +93,9 @@ export default function ProductDetailsPage({ params }: PageProps) {
   const isValidUrl = (url?: string) => {
     if (!url) return false;
     const lowerUrl = url.toLowerCase();
-    return lowerUrl.startsWith('http') && !lowerUrl.includes('mock');
+    if (lowerUrl.includes('mock')) return false;
+    if (lowerUrl.includes('zipcare') || lowerUrl.includes('warranty') || lowerUrl.includes('protect') || lowerUrl.includes('accessory')) return false;
+    return lowerUrl.startsWith('http');
   };
 
   useEffect(() => {
@@ -556,7 +559,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
                         {storePrice.inStock ? `${storePrice.deliveryDays} Day Delivery` : '--'}
                       </td>
                       <td className="py-4 text-right">
-                        {isValidUrl(storePrice.url) ? (
+                        {isValidUrl(storePrice.url) && storePrice.status !== 'Failed' ? (
                           <a
                             href={storePrice.url}
                             target="_blank"

@@ -13,12 +13,12 @@ export interface CatalogItem {
 export const CATALOG: CatalogItem[] = [
   {
     slug: 'iphone-15-pro',
-    title: 'Apple iPhone 15 Pro (128GB, Natural Titanium)',
+    title: 'Apple iPhone 15 (128GB, Black)',
     brand: 'Apple',
     category: 'Smartphones',
     image: '/images/iphone15pro.png',
-    msrp: 134900,
-    description: 'Experience the titanium design, A17 Pro chip, custom Action button, and a powerful 48MP camera system. Features Super Retina XDR display with ProMotion and advanced camera capabilities.',
+    msrp: 79900,
+    description: 'Experience the gorgeous color-infused glass design, A16 Bionic chip, custom Action button, and a powerful 48MP camera system. Features Super Retina XDR display with ProMotion and advanced camera capabilities.',
     rating: 4.7,
     reviewsCount: 1420
   },

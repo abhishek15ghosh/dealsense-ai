@@ -245,6 +245,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         originalPrice: s.originalPrice,
         url: s.productUrl,
         inStock: s.availability === 'In Stock',
+        status: s.status,
         deliveryDays: s.platform.includes('D2C') ? 3 : (s.platform === 'Amazon' ? 1 : 2)
       })),
       priceHistory: sortedDailyHistory.map((d) => {

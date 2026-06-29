@@ -10,7 +10,7 @@ export class RelianceDigitalProvider implements RetailerPriceProvider {
       // 1. Mock URL Intercept for local development/testing
       if (url.includes('mock-') || url.includes('/mock') || !url.startsWith('http')) {
         const mockPrices: Record<string, { title: string; price: number }> = {
-          'iphone-15-pro': { title: 'Apple iPhone 15 Pro (128GB, Natural Titanium)', price: 124108 },
+          'iphone-15-pro': { title: 'Apple iPhone 15 (128GB, Black)', price: 58990 },
           'mock-iphone15': { title: 'Apple iPhone 15 (Black, 128 GB)', price: 65499 },
           'mock-macbookm3': { title: 'Apple MacBook Air M3 (13.6-inch, 8GB RAM, 256GB SSD)', price: 103990 },
           'mock-sonywh5': { title: 'Sony WH-1000XM5 Bluetooth Headset with Active Noise Cancellation', price: 29490 },
