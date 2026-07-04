@@ -82,8 +82,8 @@ export async function GET() {
     // Delete PriceHistory and Alert logs for products that don't have any verified sources now
     const allProducts = await Product.find({});
     for (const prod of allProducts) {
-      const activeSrcs = await ProductSource.find({ productId: prod.customId });
-      if (activeSrcs.length === 0) {
+      const verifiedSrcs = await ProductSource.find({ productId: prod.customId, status: 'Success', currentPrice: { $gt: 0 } });
+      if (verifiedSrcs.length === 0) {
         await PriceHistory.deleteMany({ productId: prod.customId });
         await (await import('@/models/Alert')).default.deleteMany({ productId: prod.customId });
         prod.bestDealPrice = 0;

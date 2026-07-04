@@ -607,7 +607,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
                           'bg-[#3b82f6]'
                         }`} />
                         <span>{storePrice.storeName}</span>
-                        {isBest && isBestPriceAvailable && (
+                        {isBest && isBestPriceAvailable && isValidUrl(storePrice.url) && storePrice.status !== 'Failed' && (
                           <span className="inline-block px-1.5 py-0.5 bg-blue-600 text-white rounded text-[8px] font-black uppercase tracking-wider">
                             Best Deal
                           </span>
@@ -616,7 +616,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
                       <td className="py-4 text-right font-black text-slate-800">
                         {refreshing ? (
                           <span className="text-slate-400 animate-pulse text-[11px]">Updating...</span>
-                        ) : storePrice.status === 'Failed' ? (
+                        ) : (storePrice.status === 'Failed' || !isValidUrl(storePrice.url)) ? (
                           <span className="text-slate-400 font-medium italic text-[11px]">Price unavailable</span>
                         ) : (
                           `₹${storePrice.price.toLocaleString('en-IN')}`
@@ -624,13 +624,13 @@ export default function ProductDetailsPage({ params }: PageProps) {
                       </td>
                       <td className="py-4 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                          storePrice.status === 'Failed'
+                          (storePrice.status === 'Failed' || !isValidUrl(storePrice.url))
                             ? 'bg-slate-50 text-slate-500 border border-slate-200/50'
                             : storePrice.inStock
                               ? 'bg-green-50 text-green-700 border border-green-100'
                               : 'bg-red-50 text-red-700 border border-red-100'
                         }`}>
-                          {storePrice.status === 'Failed' ? 'N/A' : (storePrice.inStock ? 'In Stock' : 'Out of Stock')}
+                          {(storePrice.status === 'Failed' || !isValidUrl(storePrice.url)) ? 'N/A' : (storePrice.inStock ? 'In Stock' : 'Out of Stock')}
                         </span>
                       </td>
                       <td className="py-4 text-center text-slate-500 text-[10px]">
@@ -644,7 +644,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
                           : 'Never'}
                       </td>
                       <td className="py-4 text-center text-slate-400">
-                        {storePrice.status === 'Failed' ? '--' : (storePrice.inStock ? `${storePrice.deliveryDays} Day Delivery` : '--')}
+                        {(storePrice.status === 'Failed' || !isValidUrl(storePrice.url)) ? '--' : (storePrice.inStock ? `${storePrice.deliveryDays} Day Delivery` : '--')}
                       </td>
                       <td className="py-4 text-right">
                         {isValidUrl(storePrice.url) && storePrice.status !== 'Failed' ? (
