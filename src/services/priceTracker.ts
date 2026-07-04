@@ -3,7 +3,7 @@ import Product from '@/models/Product';
 import ProductSource from '@/models/ProductSource';
 import PriceHistory from '@/models/PriceHistory';
 import { searchProductSources } from '@/services/productSources';
-import { calculatePriceTrend, isValidSourceUrl } from '@/lib/priceUtils';
+import { calculatePriceTrend, isValidSourceUrl, getVerifiedBestDeal } from '@/lib/priceUtils';
 
 
 export interface TrackingStats {
@@ -103,21 +103,9 @@ export async function trackProductPrices(): Promise<TrackingStats> {
 
         // 4. Update parent product's best deal indicators
         const allSources = await ProductSource.find({ productId: customId });
-        const verifiedSources = allSources.filter(s => s.status === 'Success' && s.currentPrice > 0 && isValidSourceUrl(s.productUrl));
-        if (verifiedSources.length > 0) {
-          let bestSource = verifiedSources[0];
-          for (const src of verifiedSources) {
-            if (src.currentPrice < bestSource.currentPrice) {
-              bestSource = src;
-            }
-          }
-          product.bestDealPrice = bestSource.currentPrice;
-          product.bestDealStore = bestSource.platform;
-        } else {
-          product.bestDealPrice = 0;
-          product.bestDealStore = 'None';
-        }
-
+        const deal = getVerifiedBestDeal(allSources);
+        product.bestDealPrice = deal.bestPrice;
+        product.bestDealStore = deal.bestStore;
 
         // 5. Store history in PriceHistory collection
         const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
@@ -128,7 +116,9 @@ export async function trackProductPrices(): Promise<TrackingStats> {
           : { productId: customId, date: todayStr };
 
         relevantListings.forEach((listing) => {
-          historyObj[listing.platform] = listing.currentPrice;
+          if (listing.currentPrice && listing.currentPrice > 0 && isValidSourceUrl(listing.productUrl)) {
+            historyObj[listing.platform] = listing.currentPrice;
+          }
         });
 
         if (historyPoint) {
@@ -169,6 +159,7 @@ export async function trackProductPrices(): Promise<TrackingStats> {
         const Alert = (await import('@/models/Alert')).default;
         const activeAlerts = await Alert.find({ productId: customId, status: 'active' });
         
+        const verifiedSources = allSources.filter(s => s.status === 'Success' && s.currentPrice && s.currentPrice > 0 && isValidSourceUrl(s.productUrl));
         for (const alert of activeAlerts) {
           stats.alertsChecked++;
           // Find the price on the requested store

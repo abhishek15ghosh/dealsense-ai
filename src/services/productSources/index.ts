@@ -3,7 +3,7 @@ import Product from '@/models/Product';
 import ProductSource from '@/models/ProductSource';
 import PriceHistory from '@/models/PriceHistory';
 import { UnifiedProduct, ProductAdapter } from './types';
-import { isValidSourceUrl } from '@/lib/priceUtils';
+import { isValidSourceUrl, getVerifiedBestDeal } from '@/lib/priceUtils';
 import { AmazonAdapter } from './adapters/amazon';
 import { FlipkartAdapter } from './adapters/flipkart';
 import { CromaAdapter } from './adapters/croma';
@@ -142,22 +142,10 @@ export async function ingestProductSource(listing: UnifiedProduct): Promise<void
 
   // 4. Update parent product's best deal fields
   const allSources = await ProductSource.find({ productId: customId });
-  const verifiedSources = allSources.filter(s => s.status === 'Success' && s.currentPrice > 0 && isValidSourceUrl(s.productUrl));
-  if (verifiedSources.length > 0) {
-    let bestSource = verifiedSources[0];
-    for (const src of verifiedSources) {
-      if (src.currentPrice < bestSource.currentPrice) {
-        bestSource = src;
-      }
-    }
-    product.bestDealPrice = bestSource.currentPrice;
-    product.bestDealStore = bestSource.platform;
-    await product.save();
-  } else {
-    product.bestDealPrice = 0;
-    product.bestDealStore = 'None';
-    await product.save();
-  }
+  const deal = getVerifiedBestDeal(allSources);
+  product.bestDealPrice = deal.bestPrice;
+  product.bestDealStore = deal.bestStore;
+  await product.save();
 }
 
 async function generateMockPriceHistory(productId: string, msrp: number) {

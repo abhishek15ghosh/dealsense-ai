@@ -6,6 +6,7 @@ import { useApp } from '@/context/AppContext';
 import { mockProducts, PriceHistoryPoint } from '@/data/mockProducts';
 import DashboardLayout from '@/components/DashboardLayout';
 import PriceChart from '@/components/PriceChart';
+import { getVerifiedBestDeal } from '@/lib/priceUtils';
 import Image from 'next/image';
 import { 
   Heart, 
@@ -274,26 +275,26 @@ export default function ProductDetailsPage({ params }: PageProps) {
 
   const aiStyles = getAiCardColor(product.aiRecommendation.decision);
   const verifiedPrices = product.prices.filter(p => p.status === 'Success' && p.price > 0 && isValidUrl(p.url));
-  const isBestPriceAvailable = verifiedPrices.length > 0;
   
-  let currentBestPrice = 0;
-  let bestDealStore = 'None';
-  let originalPrice = product.prices.length > 0 ? product.prices[0].originalPrice : 0;
+  // Format array to match SimpleProductSource format
+  const simpleSources = product.prices.map(p => ({
+    storeName: p.storeName,
+    price: p.price,
+    originalPrice: p.originalPrice,
+    url: p.url,
+    inStock: p.inStock,
+    status: p.status,
+    lastChecked: p.lastChecked
+  }));
 
-  if (isBestPriceAvailable) {
-    let best = verifiedPrices[0];
-    for (const p of verifiedPrices) {
-      if (p.price < best.price) {
-        best = p;
-      }
-    }
-    currentBestPrice = best.price;
-    bestDealStore = best.storeName;
-    originalPrice = best.originalPrice;
-  }
+  const deal = getVerifiedBestDeal(simpleSources);
+  const isBestPriceAvailable = deal.hasDeal;
+  const currentBestPrice = deal.bestPrice;
+  const bestDealStore = deal.bestStore;
+  const originalPrice = deal.originalPrice;
 
   const savingAmount = originalPrice - currentBestPrice;
-  const savingPct = originalPrice > 0 ? Math.round((savingAmount / originalPrice) * 100) : 0;
+  const savingPct = deal.savingsPct;
 
   // Adapt dynamic charts data by cleaning undefined platforms
   const formattedChartData = product.priceHistory.map((h) => {

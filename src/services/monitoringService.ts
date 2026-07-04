@@ -7,7 +7,7 @@ import Alert from '@/models/Alert';
 import Notification from '@/models/Notification';
 import { fetchPriceForRetailer } from '@/services/retailerPriceService';
 import { mockProducts } from '@/data/mockProducts';
-import { isValidSourceUrl } from '@/lib/priceUtils';
+import { isValidSourceUrl, getVerifiedBestDeal } from '@/lib/priceUtils';
 
 
 export async function runPriceMonitoringEngine() {
@@ -164,9 +164,9 @@ export async function runPriceMonitoringEngine() {
       await Promise.all(fetchPromises);
 
       // Reload successfully updated sources to find the best deal
-      const allSuccessfulSources = await ProductSource.find({ productId, active: true, status: 'Success' });
-      const successfulSources = allSuccessfulSources.filter(s => s.currentPrice > 0 && isValidSourceUrl(s.productUrl));
-      if (successfulSources.length === 0) {
+      const allSources = await ProductSource.find({ productId });
+      const deal = getVerifiedBestDeal(allSources);
+      if (!deal.hasDeal) {
         console.log(`[Monitoring Engine] No successful sources found for ${productId}. Setting bestDealPrice to 0.`);
         if (productDoc) {
           productDoc.bestDealPrice = 0;
@@ -176,17 +176,9 @@ export async function runPriceMonitoringEngine() {
         continue;
       }
 
-      // Find the best platform and price
-      let bestSource = successfulSources[0];
-      for (const source of successfulSources) {
-        if (source.currentPrice < bestSource.currentPrice) {
-          bestSource = source;
-        }
-      }
-
-      const newPrice = bestSource.currentPrice;
-      const retailer = bestSource.retailer || bestSource.platform;
-      const productName = productDoc ? productDoc.name : (bestSource.title || productId);
+      const newPrice = deal.bestPrice;
+      const retailer = deal.bestStore;
+      const productName = productDoc ? productDoc.name : productId;
 
       // Find the last recorded price for this product from flat history records first
       const lastHistory = await PriceHistory.findOne({ productId, price: { $gt: 0 } }).sort({ timestamp: -1, _id: -1 });

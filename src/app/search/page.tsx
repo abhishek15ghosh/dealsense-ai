@@ -12,6 +12,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { getVerifiedBestDeal } from '@/lib/priceUtils';
 
 interface SearchContentProps {
   queryParam: string;
@@ -24,6 +25,8 @@ interface ProductPrice {
   url: string;
   inStock: boolean;
   deliveryDays: number;
+  status?: string;
+  lastChecked?: string;
 }
 
 interface ProductPriceHistory {
@@ -322,10 +325,19 @@ function SearchContent({ queryParam }: SearchContentProps) {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredProducts.map((product) => {
-                const originalPrice = product.prices.length > 0 ? product.prices[0].originalPrice : product.bestDealPrice;
-                const savingsPct = originalPrice > 0 ? Math.round(
-                  ((originalPrice - product.bestDealPrice) / originalPrice) * 100
-                ) : 0;
+                const deal = getVerifiedBestDeal(product.prices.map(sp => ({
+                  storeName: sp.storeName,
+                  price: sp.price,
+                  originalPrice: sp.originalPrice,
+                  url: sp.url,
+                  inStock: sp.inStock,
+                  status: sp.status || (sp.inStock ? 'Success' : 'Failed'),
+                  lastChecked: sp.lastChecked || new Date().toISOString()
+                })));
+                const savingsPct = deal.savingsPct;
+                const currentBestPrice = deal.bestPrice;
+                const bestDealStore = deal.bestStore;
+                const isBestPriceAvailable = deal.hasDeal;
                 return (
                   <div 
                     key={product.id}
@@ -363,7 +375,7 @@ function SearchContent({ queryParam }: SearchContentProps) {
                         {product.prices.slice(0, 4).map((sp) => (
                           <div key={sp.storeName} className="flex justify-between items-center">
                             <span className="text-slate-400 truncate max-w-[80px]">{sp.storeName}:</span>
-                            <span className={sp.storeName === product.bestDealStore ? 'text-blue-600 font-extrabold' : ''}>
+                            <span className={sp.storeName === bestDealStore ? 'text-blue-600 font-extrabold' : ''}>
                               {sp.price !== undefined && sp.price !== null && sp.price > 0 ? `₹${sp.price.toLocaleString('en-IN')}` : 'Unavailable'}
                             </span>
                           </div>
@@ -376,8 +388,14 @@ function SearchContent({ queryParam }: SearchContentProps) {
                       <div className="space-y-0.5">
                         <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Best Deal</span>
                         <p className="text-slate-700">
-                          ₹{product.bestDealPrice.toLocaleString('en-IN')}{' '}
-                          <span className="text-green-600 text-[10px]">(-{savingsPct}%)</span>
+                          {isBestPriceAvailable ? (
+                            <>
+                              ₹{currentBestPrice.toLocaleString('en-IN')}{' '}
+                              <span className="text-green-600 text-[10px]">(-{savingsPct}%)</span>
+                            </>
+                          ) : (
+                            <span className="text-slate-400 italic text-[11px]">Best deal unavailable</span>
+                          )}
                         </p>
                       </div>
                       <div className="flex gap-2">
