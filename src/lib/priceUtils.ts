@@ -78,6 +78,7 @@ export function getVerifiedBestDeal(sources: SimpleProductSource[]): VerifiedBes
 
   const validSources = sources.filter(s => {
     const price = s.price !== undefined ? s.price : s.currentPrice;
+    const originalPrice = s.originalPrice;
     const url = s.url !== undefined ? s.url : s.productUrl;
     const inStock = s.inStock !== undefined ? s.inStock : (s.availability === 'In Stock');
     const isSuccess = s.status === 'Success';
@@ -87,6 +88,10 @@ export function getVerifiedBestDeal(sources: SimpleProductSource[]): VerifiedBes
       price !== undefined &&
       price !== null &&
       price > 0 &&
+      originalPrice !== undefined &&
+      originalPrice !== null &&
+      originalPrice > 0 &&
+      price < originalPrice &&
       isSuccess &&
       inStock &&
       isValidSourceUrl(url) &&
