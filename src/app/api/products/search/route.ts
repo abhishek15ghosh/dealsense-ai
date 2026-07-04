@@ -4,7 +4,7 @@ import Product from '@/models/Product';
 import ProductSource from '@/models/ProductSource';
 import PriceHistory from '@/models/PriceHistory';
 import { mockProducts } from '@/data/mockProducts';
-import { isValidSourceUrl } from '@/lib/priceUtils';
+import { isValidSourceUrl, getVerifiedBestDeal } from '@/lib/priceUtils';
 
 
 export const dynamic = 'force-dynamic';
@@ -103,6 +103,26 @@ export async function GET(request: NextRequest) {
         const sources = await ProductSource.find({ productId: doc.customId });
         const history = await PriceHistory.find({ productId: doc.customId });
 
+        // Compute live verified best deal using getVerifiedBestDeal
+        const deal = getVerifiedBestDeal(sources.map(s => ({
+          storeName: s.platform,
+          price: s.currentPrice,
+          originalPrice: s.originalPrice,
+          url: s.productUrl,
+          availability: s.availability,
+          inStock: s.availability === 'In Stock',
+          status: s.status,
+          lastChecked: s.lastChecked
+        })));
+
+        const bestDealPrice = deal.bestPrice;
+        const bestDealStore = deal.bestStore;
+
+        // Synchronize fields in the database document
+        doc.bestDealPrice = bestDealPrice;
+        doc.bestDealStore = bestDealStore;
+        await doc.save();
+
         return {
           id: doc.customId,
           name: doc.name,
@@ -111,10 +131,10 @@ export async function GET(request: NextRequest) {
           category: doc.category,
           rating: doc.rating,
           reviewsCount: doc.reviewsCount,
-          bestDealStore: doc.bestDealStore,
-          bestDealPrice: doc.bestDealPrice,
-          lowestRecordedPrice: doc.lowestRecordedPrice || doc.bestDealPrice,
-          highestRecordedPrice: doc.highestRecordedPrice || doc.bestDealPrice * 1.15,
+          bestDealStore,
+          bestDealPrice,
+          lowestRecordedPrice: doc.lowestRecordedPrice || bestDealPrice,
+          highestRecordedPrice: doc.highestRecordedPrice || bestDealPrice * 1.15,
           priceTrend: doc.priceTrend || 'stable',
           prices: sources.map((s) => ({
             storeName: s.platform,
