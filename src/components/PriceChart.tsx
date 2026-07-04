@@ -15,6 +15,7 @@ import { PriceHistoryPoint } from '@/data/mockProducts';
 interface PriceChartProps {
   data: PriceHistoryPoint[];
   forecast?: Array<{ date: string; price: number }>;
+  verifiedStores?: string[];
 }
 
 interface TooltipEntry {
@@ -52,7 +53,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   return null;
 };
 
-export default function PriceChart({ data, forecast = [] }: PriceChartProps) {
+export default function PriceChart({ data, forecast = [], verifiedStores }: PriceChartProps) {
   const [activeTab, setActiveTab] = useState<'history' | 'forecast'>('history');
   const [activeStores, setActiveStores] = useState({
     Amazon: true,
@@ -61,6 +62,11 @@ export default function PriceChart({ data, forecast = [] }: PriceChartProps) {
     'Reliance Digital': true,
   });
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
+
+  const storeExists = (storeName: string) => {
+    if (!verifiedStores) return true;
+    return verifiedStores.some(s => s.toLowerCase() === storeName.toLowerCase());
+  };
 
   const storeColors = {
     Amazon: '#FF9900',
@@ -202,7 +208,7 @@ export default function PriceChart({ data, forecast = [] }: PriceChartProps) {
         {/* Brand Toggles (only visible in History tab) */}
         {activeTab === 'history' && (
           <div className="flex flex-wrap gap-2">
-            {(Object.keys(activeStores) as Array<keyof typeof activeStores>).map((store) => {
+            {(Object.keys(activeStores) as Array<keyof typeof activeStores>).filter(storeExists).map((store) => {
               const isActive = activeStores[store];
               const color = storeColors[store];
               return (
@@ -324,7 +330,7 @@ export default function PriceChart({ data, forecast = [] }: PriceChartProps) {
               />
               <Tooltip content={<CustomTooltip />} />
               
-              {(Object.keys(activeStores) as Array<keyof typeof activeStores>).map((store) => {
+              {(Object.keys(activeStores) as Array<keyof typeof activeStores>).filter(storeExists).map((store) => {
                 if (!activeStores[store]) return null;
                 const color = storeColors[store];
                 const safeId = store.replace(/\s+/g, '-');

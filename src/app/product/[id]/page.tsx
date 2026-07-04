@@ -750,6 +750,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
       <PriceChart 
         data={formattedChartData as unknown as PriceHistoryPoint[]} 
         forecast={product.aiPricePrediction?.forecast}
+        verifiedStores={verifiedPrices.map(p => p.storeName)}
       />
 
       {/* SVG Linear Gradient for Gauge Ring */}

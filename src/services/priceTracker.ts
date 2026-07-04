@@ -3,7 +3,8 @@ import Product from '@/models/Product';
 import ProductSource from '@/models/ProductSource';
 import PriceHistory from '@/models/PriceHistory';
 import { searchProductSources } from '@/services/productSources';
-import { calculatePriceTrend } from '@/lib/priceUtils';
+import { calculatePriceTrend, isValidSourceUrl } from '@/lib/priceUtils';
+
 
 export interface TrackingStats {
   alertsChecked: number;
@@ -97,16 +98,21 @@ export async function trackProductPrices(): Promise<TrackingStats> {
 
         // 4. Update parent product's best deal indicators
         const allSources = await ProductSource.find({ productId: customId });
-        if (allSources.length > 0) {
-          let bestSource = allSources[0];
-          for (const src of allSources) {
+        const verifiedSources = allSources.filter(s => s.status === 'Success' && s.currentPrice > 0 && isValidSourceUrl(s.productUrl));
+        if (verifiedSources.length > 0) {
+          let bestSource = verifiedSources[0];
+          for (const src of verifiedSources) {
             if (src.currentPrice < bestSource.currentPrice) {
               bestSource = src;
             }
           }
           product.bestDealPrice = bestSource.currentPrice;
           product.bestDealStore = bestSource.platform;
+        } else {
+          product.bestDealPrice = 0;
+          product.bestDealStore = 'None';
         }
+
 
         // 5. Store history in PriceHistory collection
         const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
@@ -161,14 +167,14 @@ export async function trackProductPrices(): Promise<TrackingStats> {
         for (const alert of activeAlerts) {
           stats.alertsChecked++;
           // Find the price on the requested store
-          const platformPriceSource = allSources.find((s) => s.platform === alert.storeName);
+          const platformPriceSource = verifiedSources.find((s) => s.platform === alert.storeName);
           // Fallback: if store price not found, check best deal price
-          const latestPrice = platformPriceSource ? platformPriceSource.currentPrice : product.bestDealPrice;
+          const latestPrice = platformPriceSource ? platformPriceSource.currentPrice : (verifiedSources.length > 0 ? product.bestDealPrice : 0);
           
           // Update the current price in the alert
           alert.currentPrice = latestPrice;
           
-          if (latestPrice <= alert.targetPrice) {
+          if (latestPrice > 0 && latestPrice <= alert.targetPrice) {
             alert.status = 'triggered';
             alert.isTriggered = true;
             alert.triggeredAt = new Date();

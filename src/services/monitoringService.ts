@@ -7,6 +7,8 @@ import Alert from '@/models/Alert';
 import Notification from '@/models/Notification';
 import { fetchPriceForRetailer } from '@/services/retailerPriceService';
 import { mockProducts } from '@/data/mockProducts';
+import { isValidSourceUrl } from '@/lib/priceUtils';
+
 
 export async function runPriceMonitoringEngine() {
   console.log('[Monitoring Engine] Running real price monitoring checks...');
@@ -144,9 +146,15 @@ export async function runPriceMonitoringEngine() {
       await Promise.all(fetchPromises);
 
       // Reload successfully updated sources to find the best deal
-      const successfulSources = await ProductSource.find({ productId, active: true, status: 'Success' });
+      const allSuccessfulSources = await ProductSource.find({ productId, active: true, status: 'Success' });
+      const successfulSources = allSuccessfulSources.filter(s => s.currentPrice > 0 && isValidSourceUrl(s.productUrl));
       if (successfulSources.length === 0) {
-        console.log(`[Monitoring Engine] No successful sources found for ${productId}. Skipping alerts.`);
+        console.log(`[Monitoring Engine] No successful sources found for ${productId}. Setting bestDealPrice to 0.`);
+        if (productDoc) {
+          productDoc.bestDealPrice = 0;
+          productDoc.bestDealStore = 'None';
+          await productDoc.save();
+        }
         continue;
       }
 

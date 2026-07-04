@@ -3,6 +3,7 @@ import Product from '@/models/Product';
 import ProductSource from '@/models/ProductSource';
 import PriceHistory from '@/models/PriceHistory';
 import { UnifiedProduct, ProductAdapter } from './types';
+import { isValidSourceUrl } from '@/lib/priceUtils';
 import { AmazonAdapter } from './adapters/amazon';
 import { FlipkartAdapter } from './adapters/flipkart';
 import { CromaAdapter } from './adapters/croma';
@@ -112,10 +113,12 @@ export async function ingestProductSource(listing: UnifiedProduct): Promise<void
 
   // 3. Find or create the ProductSource document
   const source = await ProductSource.findOne({ productId: customId, platform: listing.platform });
+  const isValid = isValidSourceUrl(listing.productUrl);
   if (source) {
-    source.currentPrice = listing.currentPrice;
+    source.currentPrice = isValid ? listing.currentPrice : 0;
     source.originalPrice = listing.originalPrice;
-    source.availability = listing.availability;
+    source.availability = isValid && listing.availability === 'In Stock' ? 'In Stock' : 'Out of Stock';
+    source.status = isValid ? 'Success' : 'Failed';
     source.lastChecked = new Date();
     await source.save();
   } else {
@@ -125,26 +128,32 @@ export async function ingestProductSource(listing: UnifiedProduct): Promise<void
       brand: listing.brand,
       category: listing.category,
       image: listing.image,
-      currentPrice: listing.currentPrice,
+      currentPrice: isValid ? listing.currentPrice : 0,
       originalPrice: listing.originalPrice,
       platform: listing.platform,
       productUrl: listing.productUrl,
-      availability: listing.availability,
+      availability: isValid && listing.availability === 'In Stock' ? 'In Stock' : 'Out of Stock',
+      status: isValid ? 'Success' : 'Failed',
       lastChecked: new Date()
     });
   }
 
   // 4. Update parent product's best deal fields
   const allSources = await ProductSource.find({ productId: customId });
-  if (allSources.length > 0) {
-    let bestSource = allSources[0];
-    for (const src of allSources) {
+  const verifiedSources = allSources.filter(s => s.status === 'Success' && s.currentPrice > 0 && isValidSourceUrl(s.productUrl));
+  if (verifiedSources.length > 0) {
+    let bestSource = verifiedSources[0];
+    for (const src of verifiedSources) {
       if (src.currentPrice < bestSource.currentPrice) {
         bestSource = src;
       }
     }
     product.bestDealPrice = bestSource.currentPrice;
     product.bestDealStore = bestSource.platform;
+    await product.save();
+  } else {
+    product.bestDealPrice = 0;
+    product.bestDealStore = 'None';
     await product.save();
   }
 }

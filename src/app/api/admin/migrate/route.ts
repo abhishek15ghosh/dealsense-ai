@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import ProductSource from '@/models/ProductSource';
 import Product from '@/models/Product';
+import PriceHistory from '@/models/PriceHistory';
 import { runScheduledPriceCheck } from '@/services/schedulerService';
 import { mockProducts } from '@/data/mockProducts';
+import { isValidSourceUrl } from '@/lib/priceUtils';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -44,14 +47,15 @@ export async function GET() {
           platform: priceObj.storeName
         };
 
+        const isValid = isValidSourceUrl(priceObj.url);
         const updateDoc = {
           $set: {
             productUrl: priceObj.url,
-            currentPrice: priceObj.price,
+            currentPrice: isValid ? priceObj.price : 0,
             originalPrice: priceObj.originalPrice,
-            availability: priceObj.inStock ? 'In Stock' : 'Out of Stock',
+            availability: isValid && priceObj.inStock ? 'In Stock' : 'Out of Stock',
             active: true,
-            status: 'Success'
+            status: isValid ? 'Success' : 'Failed'
           }
         };
 
@@ -63,6 +67,28 @@ export async function GET() {
           modified: result.modifiedCount,
           upserted: result.upsertedCount
         });
+      }
+    }
+
+    // Purge mock/invalid ProductSource and stale data from DB
+    await ProductSource.deleteMany({
+      $or: [
+        { productUrl: { $regex: /mock/i } },
+        { status: 'Failed' },
+        { currentPrice: 0 }
+      ]
+    });
+
+    // Delete PriceHistory and Alert logs for products that don't have any verified sources now
+    const allProducts = await Product.find({});
+    for (const prod of allProducts) {
+      const activeSrcs = await ProductSource.find({ productId: prod.customId });
+      if (activeSrcs.length === 0) {
+        await PriceHistory.deleteMany({ productId: prod.customId });
+        await (await import('@/models/Alert')).default.deleteMany({ productId: prod.customId });
+        prod.bestDealPrice = 0;
+        prod.bestDealStore = 'None';
+        await prod.save();
       }
     }
 

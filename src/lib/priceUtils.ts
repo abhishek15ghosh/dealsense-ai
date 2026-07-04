@@ -40,3 +40,12 @@ export function calculatePriceTrend(history: HistoryPoint[], platform?: string):
   if (lastVal > prevVal) return 'up';
   return 'stable';
 }
+
+export function isValidSourceUrl(url?: string): boolean {
+  if (!url) return false;
+  const lowerUrl = url.toLowerCase();
+  if (lowerUrl.includes('mock')) return false;
+  if (lowerUrl.includes('zipcare') || lowerUrl.includes('warranty') || lowerUrl.includes('protect') || lowerUrl.includes('accessory')) return false;
+  return lowerUrl.startsWith('http');
+}
+

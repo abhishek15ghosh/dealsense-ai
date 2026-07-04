@@ -4,6 +4,8 @@ import Product from '@/models/Product';
 import ProductSource from '@/models/ProductSource';
 import PriceHistory from '@/models/PriceHistory';
 import { mockProducts } from '@/data/mockProducts';
+import { isValidSourceUrl } from '@/lib/priceUtils';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -39,17 +41,19 @@ async function seedDatabaseIfEmpty() {
 
     // 2. Create ProductSource entries
     for (const source of p.prices) {
+      const isValid = isValidSourceUrl(source.url);
       await ProductSource.create({
         productId: p.id,
         title: p.name,
         brand: p.name.split(' ')[0], // Extract brand (first word)
         category: p.category,
         image: p.image,
-        currentPrice: source.price,
+        currentPrice: isValid ? source.price : 0,
         originalPrice: source.originalPrice,
         platform: source.storeName,
         productUrl: source.url,
-        availability: source.inStock ? 'In Stock' : 'Out of Stock',
+        availability: isValid && source.inStock ? 'In Stock' : 'Out of Stock',
+        status: isValid ? 'Success' : 'Failed',
         lastChecked: new Date()
       });
     }
