@@ -364,7 +364,7 @@ function SearchContent({ queryParam }: SearchContentProps) {
                           <div key={sp.storeName} className="flex justify-between items-center">
                             <span className="text-slate-400 truncate max-w-[80px]">{sp.storeName}:</span>
                             <span className={sp.storeName === product.bestDealStore ? 'text-blue-600 font-extrabold' : ''}>
-                              ₹{sp.price.toLocaleString('en-IN')}
+                              {sp.price !== undefined && sp.price !== null && sp.price > 0 ? `₹${sp.price.toLocaleString('en-IN')}` : 'Unavailable'}
                             </span>
                           </div>
                         ))}
