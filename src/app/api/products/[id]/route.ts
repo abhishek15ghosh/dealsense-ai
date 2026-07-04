@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import Product from '@/models/Product';
 import ProductSource from '@/models/ProductSource';
 import PriceHistory from '@/models/PriceHistory';
+import { getVerifiedBestDeal } from '@/lib/priceUtils';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -118,16 +119,34 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
     });
 
+    // Compute live verified best deal using getVerifiedBestDeal
+    const deal = getVerifiedBestDeal(sources.map(s => ({
+      storeName: s.platform,
+      price: s.currentPrice,
+      originalPrice: s.originalPrice,
+      url: s.productUrl,
+      availability: s.availability,
+      inStock: s.availability === 'In Stock',
+      status: s.status,
+      lastChecked: s.lastChecked
+    })));
+
+    const currentBestPrice = deal.bestPrice;
+    const bestDealStore = deal.bestStore;
+
+    // Synchronize doc fields in the database
+    doc.bestDealPrice = currentBestPrice;
+    doc.bestDealStore = bestDealStore;
+
     // Calculate inputs for the AI Deal Engine
-    const currentBestPrice = doc.bestDealPrice;
-    const lowestRecordedPrice = doc.lowestRecordedPrice || doc.bestDealPrice;
-    const highestRecordedPrice = doc.highestRecordedPrice || doc.bestDealPrice * 1.15;
+    const lowestRecordedPrice = doc.lowestRecordedPrice || currentBestPrice;
+    const highestRecordedPrice = doc.highestRecordedPrice || currentBestPrice * 1.15;
     const trendVal = doc.priceTrend || 'stable';
     const firstSource = sources[0];
-    const msrp = firstSource ? firstSource.originalPrice : doc.bestDealPrice;
-    const discountPercentage = msrp > 0 ? Math.round(((msrp - currentBestPrice) / msrp) * 100) : 0;
+    const msrp = firstSource ? firstSource.originalPrice : currentBestPrice;
+    const discountPercentage = deal.savingsPct;
     const similarPricePlatformsCount = sources.filter((s) => s.currentPrice <= currentBestPrice * 1.02).length;
-    const stockAvailable = sources.some((s) => s.availability === 'In Stock');
+    const stockAvailable = deal.hasDeal;
     const priceVolatility = lowestRecordedPrice > 0 ? (highestRecordedPrice - lowestRecordedPrice) / lowestRecordedPrice : 0;
 
     const { generateDealDecision } = await import('@/services/aiDealEngine');
@@ -143,7 +162,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       similarPricePlatformsCount,
       stockAvailable,
       priceVolatility,
-      bestDealStore: doc.bestDealStore
+      bestDealStore
     });
 
     const prevDecision = doc.aiRecommendation?.decision;
