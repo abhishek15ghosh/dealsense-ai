@@ -115,10 +115,11 @@ export async function ingestProductSource(listing: UnifiedProduct): Promise<void
   const source = await ProductSource.findOne({ productId: customId, platform: listing.platform });
   const isValid = isValidSourceUrl(listing.productUrl);
   if (source) {
-    source.currentPrice = isValid ? listing.currentPrice : 0;
+    source.currentPrice = isValid ? listing.currentPrice : undefined;
     source.originalPrice = listing.originalPrice;
-    source.availability = isValid && listing.availability === 'In Stock' ? 'In Stock' : 'Out of Stock';
+    source.availability = isValid && listing.availability === 'In Stock' ? 'In Stock' : 'Unavailable';
     source.status = isValid ? 'Success' : 'Failed';
+    source.active = isValid;
     source.lastChecked = new Date();
     await source.save();
   } else {
@@ -128,12 +129,13 @@ export async function ingestProductSource(listing: UnifiedProduct): Promise<void
       brand: listing.brand,
       category: listing.category,
       image: listing.image,
-      currentPrice: isValid ? listing.currentPrice : 0,
+      currentPrice: isValid ? listing.currentPrice : undefined,
       originalPrice: listing.originalPrice,
       platform: listing.platform,
       productUrl: listing.productUrl,
-      availability: isValid && listing.availability === 'In Stock' ? 'In Stock' : 'Out of Stock',
+      availability: isValid && listing.availability === 'In Stock' ? 'In Stock' : 'Unavailable',
       status: isValid ? 'Success' : 'Failed',
+      active: isValid,
       lastChecked: new Date()
     });
   }

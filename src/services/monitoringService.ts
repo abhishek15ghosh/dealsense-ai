@@ -118,6 +118,17 @@ export async function runPriceMonitoringEngine() {
       // Loop through all active sources and update their prices
       const fetchPromises = sources.map(async (source) => {
         try {
+          const isValid = isValidSourceUrl(source.productUrl);
+          if (!isValid) {
+            source.active = false;
+            source.status = 'Failed';
+            source.currentPrice = undefined;
+            source.availability = 'Unavailable';
+            source.lastChecked = new Date();
+            await source.save();
+            return source;
+          }
+
           const result = await fetchPriceForRetailer(source.retailer || source.platform, source.productUrl);
           
           if (result.success) {
@@ -127,8 +138,12 @@ export async function runPriceMonitoringEngine() {
             }
             source.status = 'Success';
             source.availability = 'In Stock';
+            source.active = true;
           } else {
+            source.active = false;
             source.status = 'Failed';
+            source.currentPrice = undefined;
+            source.availability = 'Unavailable';
             console.warn(`[Monitoring Engine] Fetch failed for ${source.retailer} URL ${source.productUrl}: ${result.error}`);
           }
           source.lastChecked = new Date();
@@ -136,7 +151,10 @@ export async function runPriceMonitoringEngine() {
           return source;
         } catch (fetchErr) {
           console.error(`[Monitoring Engine] Failed to fetch price for source ${source._id}:`, fetchErr);
+          source.active = false;
           source.status = 'Failed';
+          source.currentPrice = undefined;
+          source.availability = 'Unavailable';
           source.lastChecked = new Date();
           await source.save();
           return source;

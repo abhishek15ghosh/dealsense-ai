@@ -48,12 +48,13 @@ async function seedDatabaseIfEmpty() {
         brand: p.name.split(' ')[0], // Extract brand (first word)
         category: p.category,
         image: p.image,
-        currentPrice: isValid ? source.price : 0,
+        currentPrice: isValid ? source.price : undefined,
         originalPrice: source.originalPrice,
         platform: source.storeName,
         productUrl: source.url,
-        availability: isValid && source.inStock ? 'In Stock' : 'Out of Stock',
+        availability: isValid && source.inStock ? 'In Stock' : 'Unavailable',
         status: isValid ? 'Success' : 'Failed',
+        active: isValid,
         lastChecked: new Date()
       });
     }

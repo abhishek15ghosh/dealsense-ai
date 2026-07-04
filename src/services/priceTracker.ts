@@ -50,19 +50,22 @@ export async function trackProductPrices(): Promise<TrackingStats> {
 
         // 3. Save latest prices
         for (const listing of relevantListings) {
+          const isValid = isValidSourceUrl(listing.productUrl);
           const source = await ProductSource.findOne({ productId: customId, platform: listing.platform });
           if (source) {
             const prevPrice = source.currentPrice;
-            const newPrice = listing.currentPrice;
+            const newPrice = isValid ? listing.currentPrice : 0;
 
-            source.currentPrice = listing.currentPrice;
+            source.currentPrice = isValid ? listing.currentPrice : undefined;
             source.originalPrice = listing.originalPrice;
-            source.availability = listing.availability;
+            source.availability = isValid && listing.availability === 'In Stock' ? 'In Stock' : 'Out of Stock';
+            source.status = isValid ? 'Success' : 'Failed';
+            source.active = isValid;
             source.lastChecked = new Date();
             await source.save();
 
             // Check if price dropped by 5% or more
-            if (newPrice < prevPrice) {
+            if (isValid && prevPrice && newPrice && newPrice < prevPrice) {
               const dropPercent = Math.round(((prevPrice - newPrice) / prevPrice) * 100);
               if (dropPercent >= 5) {
                 const Watchlist = (await import('@/models/Watchlist')).default;
@@ -86,11 +89,13 @@ export async function trackProductPrices(): Promise<TrackingStats> {
               brand: listing.brand,
               category: listing.category,
               image: listing.image,
-              currentPrice: listing.currentPrice,
+              currentPrice: isValid ? listing.currentPrice : undefined,
               originalPrice: listing.originalPrice,
               platform: listing.platform,
               productUrl: listing.productUrl,
-              availability: listing.availability,
+              availability: isValid && listing.availability === 'In Stock' ? 'In Stock' : 'Out of Stock',
+              status: isValid ? 'Success' : 'Failed',
+              active: isValid,
               lastChecked: new Date()
             });
           }

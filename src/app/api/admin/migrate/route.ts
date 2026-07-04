@@ -51,10 +51,10 @@ export async function GET() {
         const updateDoc = {
           $set: {
             productUrl: priceObj.url,
-            currentPrice: isValid ? priceObj.price : 0,
+            currentPrice: isValid ? priceObj.price : undefined,
             originalPrice: priceObj.originalPrice,
-            availability: isValid && priceObj.inStock ? 'In Stock' : 'Out of Stock',
-            active: true,
+            availability: isValid && priceObj.inStock ? 'In Stock' : 'Unavailable',
+            active: isValid,
             status: isValid ? 'Success' : 'Failed'
           }
         };

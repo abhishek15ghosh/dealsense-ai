@@ -276,9 +276,9 @@ export default function ProductDetailsPage({ params }: PageProps) {
   const verifiedPrices = product.prices.filter(p => p.status === 'Success' && p.price > 0 && isValidUrl(p.url));
   const isBestPriceAvailable = verifiedPrices.length > 0;
   
-  let currentBestPrice = product.bestDealPrice;
-  let bestDealStore = product.bestDealStore;
-  let originalPrice = product.prices.length > 0 ? product.prices[0].originalPrice : product.bestDealPrice;
+  let currentBestPrice = 0;
+  let bestDealStore = 'None';
+  let originalPrice = product.prices.length > 0 ? product.prices[0].originalPrice : 0;
 
   if (isBestPriceAvailable) {
     let best = verifiedPrices[0];
@@ -396,23 +396,24 @@ export default function ProductDetailsPage({ params }: PageProps) {
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
                 <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">Lowest Recorded</span>
                 <span className="text-xs sm:text-sm font-black text-slate-800">
-                  ₹{(product.lowestRecordedPrice || product.bestDealPrice).toLocaleString('en-IN')}
+                  {isBestPriceAvailable ? `₹${(product.lowestRecordedPrice || product.bestDealPrice).toLocaleString('en-IN')}` : 'Unavailable'}
                 </span>
               </div>
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
                 <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">Highest Recorded</span>
                 <span className="text-xs sm:text-sm font-black text-slate-800">
-                  ₹{(product.highestRecordedPrice || Math.round(product.bestDealPrice * 1.15)).toLocaleString('en-IN')}
+                  {isBestPriceAvailable ? `₹${(product.highestRecordedPrice || Math.round(product.bestDealPrice * 1.15)).toLocaleString('en-IN')}` : 'Unavailable'}
                 </span>
               </div>
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col justify-between">
                 <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">Price Trend</span>
                 <span className={`inline-flex items-center self-start px-2 py-0.5 rounded text-[10px] font-extrabold border ${
+                  !isBestPriceAvailable ? 'bg-slate-50 text-slate-400 border-slate-200' :
                   product.priceTrend === 'down' ? 'bg-green-50 text-green-700 border-green-200' :
                   product.priceTrend === 'up' ? 'bg-red-50 text-red-700 border-red-200' :
                   'bg-blue-50 text-blue-700 border-blue-200'
                 }`}>
-                  {(product.priceTrend || 'stable').toUpperCase()}
+                  {isBestPriceAvailable ? (product.priceTrend || 'stable').toUpperCase() : 'N/A'}
                 </span>
               </div>
             </div>

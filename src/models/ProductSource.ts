@@ -23,7 +23,7 @@ const ProductSourceSchema = new Schema<IProductSource>({
   brand: { type: String, required: true },
   category: { type: String, required: true },
   image: { type: String, required: true },
-  currentPrice: { type: Number, required: true },
+  currentPrice: { type: Number, required: false },
   originalPrice: { type: Number, required: true },
   platform: { type: String, required: true },
   retailer: { type: String },
