@@ -139,11 +139,13 @@ export async function runPriceMonitoringEngine() {
             source.status = 'Success';
             source.availability = 'In Stock';
             source.active = true;
+            source.failureReason = '';
           } else {
             source.active = false;
             source.status = 'Failed';
             source.currentPrice = undefined;
             source.availability = 'Unavailable';
+            source.failureReason = result.error || 'Scraper failed';
             console.warn(`[Monitoring Engine] Fetch failed for ${source.retailer} URL ${source.productUrl}: ${result.error}`);
           }
           source.lastChecked = new Date();
@@ -155,6 +157,7 @@ export async function runPriceMonitoringEngine() {
           source.status = 'Failed';
           source.currentPrice = undefined;
           source.availability = 'Unavailable';
+          source.failureReason = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
           source.lastChecked = new Date();
           await source.save();
           return source;

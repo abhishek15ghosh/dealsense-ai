@@ -58,8 +58,9 @@ export async function trackProductPrices(): Promise<TrackingStats> {
 
             source.currentPrice = isValid ? listing.currentPrice : undefined;
             source.originalPrice = listing.originalPrice;
-            source.availability = isValid && listing.availability === 'In Stock' ? 'In Stock' : 'Out of Stock';
+            source.availability = isValid && listing.availability === 'In Stock' ? 'In Stock' : 'Unavailable';
             source.status = isValid ? 'Success' : 'Failed';
+            source.failureReason = isValid ? '' : 'invalid URL or mock fallback pattern';
             source.active = isValid;
             source.lastChecked = new Date();
             await source.save();
@@ -93,8 +94,9 @@ export async function trackProductPrices(): Promise<TrackingStats> {
               originalPrice: listing.originalPrice,
               platform: listing.platform,
               productUrl: listing.productUrl,
-              availability: isValid && listing.availability === 'In Stock' ? 'In Stock' : 'Out of Stock',
+              availability: isValid && listing.availability === 'In Stock' ? 'In Stock' : 'Unavailable',
               status: isValid ? 'Success' : 'Failed',
+              failureReason: isValid ? '' : 'invalid URL or mock fallback pattern',
               active: isValid,
               lastChecked: new Date()
             });

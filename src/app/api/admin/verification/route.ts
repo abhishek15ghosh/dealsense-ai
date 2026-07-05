@@ -29,8 +29,9 @@ export async function GET(request: NextRequest) {
         productUrl: source.productUrl,
         lastPrice: source.currentPrice,
         lastChecked: source.lastChecked,
-        status: source.status || 'Success',
-        active: source.active ?? true
+        status: source.status || 'Failed',
+        active: source.active ?? false,
+        failureReason: source.failureReason || ''
       };
     });
 
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { productId, retailer, productUrl, active } = body;
+    const { productId, retailer, productUrl } = body;
 
     if (!productId || !retailer || !productUrl) {
       return NextResponse.json({ success: false, error: 'productId, retailer, and productUrl are required' }, { status: 400 });
@@ -66,24 +67,24 @@ export async function POST(request: NextRequest) {
     // 2. Fetch latest price from the provider to validate and get current details
     const scraperResult = await fetchPriceForRetailer(retailer, productUrl);
     
-    const title = scraperResult.success && scraperResult.title !== 'Unknown Amazon Product'
+    const title = scraperResult.success && scraperResult.title
       ? scraperResult.title
       : (productDoc ? productDoc.name : productId.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
-      
-    const currentPrice = scraperResult.success ? scraperResult.price : (productDoc ? productDoc.bestDealPrice || 49999 : 49999);
-    const originalPrice = productDoc ? (productDoc.originalPrice || currentPrice * 1.15) : currentPrice * 1.15;
+
+    const currentPrice = scraperResult.success ? scraperResult.price : undefined;
+    const originalPrice = productDoc ? (productDoc.originalPrice || (currentPrice || 49999) * 1.15) : (currentPrice || 49999) * 1.15;
 
     // 3. Find or create the source
     let source = await ProductSource.findOne({ productId, retailer });
     if (source) {
       source.productUrl = productUrl;
-      source.active = active !== undefined ? active : true;
+      source.active = scraperResult.success;
       source.title = title;
-      if (scraperResult.success) {
-        source.currentPrice = currentPrice;
-      }
+      source.currentPrice = currentPrice;
       source.lastChecked = new Date();
       source.status = scraperResult.success ? 'Success' : 'Failed';
+      source.failureReason = scraperResult.success ? '' : (scraperResult.error || 'Scraper failed');
+      source.availability = scraperResult.success ? 'In Stock' : 'Unavailable';
       await source.save();
     } else {
       source = await ProductSource.create({
@@ -97,24 +98,30 @@ export async function POST(request: NextRequest) {
         platform: retailer,
         retailer,
         productUrl,
-        availability: scraperResult.success ? 'In Stock' : 'Out of Stock',
+        availability: scraperResult.success ? 'In Stock' : 'Unavailable',
         lastChecked: new Date(),
-        active: active !== undefined ? active : true,
-        status: scraperResult.success ? 'Success' : 'Failed'
+        active: scraperResult.success,
+        status: scraperResult.success ? 'Success' : 'Failed',
+        failureReason: scraperResult.success ? '' : (scraperResult.error || 'Scraper failed')
       });
     }
 
-    // 4. Update core product best deal price if this is successful
-    if (scraperResult.success && productDoc) {
-      const allSources = await ProductSource.find({ productId, active: true, status: 'Success' });
-      let bestSource = source;
-      for (const src of allSources) {
-        if (src.currentPrice < bestSource.currentPrice) {
-          bestSource = src;
-        }
-      }
-      productDoc.bestDealPrice = bestSource.currentPrice;
-      productDoc.bestDealStore = bestSource.retailer || bestSource.platform;
+    // 4. Update core product best deal price
+    if (productDoc) {
+      const allSources = await ProductSource.find({ productId });
+      const { getVerifiedBestDeal } = await import('@/lib/priceUtils');
+      const deal = getVerifiedBestDeal(allSources.map(s => ({
+        storeName: s.platform,
+        price: s.currentPrice,
+        originalPrice: s.originalPrice,
+        url: s.productUrl,
+        availability: s.availability,
+        inStock: s.availability === 'In Stock',
+        status: s.status,
+        lastChecked: s.lastChecked
+      })));
+      productDoc.bestDealPrice = deal.bestPrice;
+      productDoc.bestDealStore = deal.bestStore;
       await productDoc.save();
     }
 

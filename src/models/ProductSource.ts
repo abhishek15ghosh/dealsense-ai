@@ -15,6 +15,7 @@ export interface IProductSource extends Document {
   lastChecked: Date;
   active?: boolean;
   status?: 'Success' | 'Failed';
+  failureReason?: string;
 }
 
 const ProductSourceSchema = new Schema<IProductSource>({
@@ -31,7 +32,8 @@ const ProductSourceSchema = new Schema<IProductSource>({
   availability: { type: String, required: true },
   lastChecked: { type: Date, required: true, default: Date.now },
   active: { type: Boolean, default: true },
-  status: { type: String, enum: ['Success', 'Failed'], default: 'Success' }
+  status: { type: String, enum: ['Success', 'Failed'], default: 'Success' },
+  failureReason: { type: String }
 });
 
 export default mongoose.models.ProductSource || mongoose.model<IProductSource>('ProductSource', ProductSourceSchema);

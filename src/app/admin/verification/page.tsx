@@ -50,6 +50,7 @@ interface ProductSource {
   lastChecked: string;
   status: 'Success' | 'Failed';
   active: boolean;
+  failureReason?: string;
 }
 
 interface Metrics {
@@ -513,116 +514,190 @@ export default function AdminVerificationPage() {
             </div>
 
             {/* Verification Table */}
-            <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="font-display font-bold text-sm text-slate-800 border-b border-slate-100 pb-3">
-                Linked Retailer Sources ({sources.length})
-              </h3>
-              
-              {loading ? (
-                <div className="flex h-64 items-center justify-center text-slate-400 text-xs font-semibold space-x-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                  <span>Loading sources...</span>
-                </div>
-              ) : sources.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 text-xs">
-                  No linked retailer sources found. Add one on the left panel or check a watchlist item.
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-left">
-                    <thead>
-                      <tr className="border-b border-slate-100">
-                        <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Product</th>
-                        <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Retailer</th>
-                        <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Last Checked Price</th>
-                        <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Status</th>
-                        <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Active</th>
-                        <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {sources.map((source) => (
-                        <tr key={source.id} className="hover:bg-slate-50/50 transition">
-                          <td className="py-4 pr-3 max-w-[200px]">
-                            <div className="space-y-1">
-                              <Link 
-                                href={`/product/${source.productId}`}
-                                className="font-display font-extrabold text-xs text-slate-800 hover:text-blue-600 transition block truncate"
-                              >
-                                {source.productName}
-                              </Link>
-                              <span className="text-[10px] text-slate-400 block font-mono">
-                                {source.productId}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-4">
-                            <span className="inline-flex items-center space-x-1 text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
-                              <Globe size={10} className="text-slate-400" />
-                              <span>{source.retailer}</span>
-                            </span>
-                          </td>
-                          <td className="py-4">
-                            <div className="space-y-1">
-                              <span className="font-display font-black text-xs text-slate-700">
-                                ₹{source.lastPrice > 0 ? source.lastPrice.toLocaleString('en-IN') : 'N/A'}
-                              </span>
-                              <span className="text-[9px] text-slate-400 block">
-                                {source.lastChecked ? new Date(source.lastChecked).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Never'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-4 text-center">
-                            {source.status === 'Success' ? (
-                              <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
-                                <CheckCircle size={10} />
-                                <span>Success</span>
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold uppercase tracking-wider text-red-600 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full">
-                                <XCircle size={10} />
-                                <span>Failed</span>
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-4 text-center">
-                            <button
-                              onClick={() => handleToggleActive(source)}
-                              className={`inline-flex items-center text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border cursor-pointer transition ${
-                                source.active 
-                                  ? 'text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100'
-                                  : 'text-slate-400 bg-slate-50 border-slate-200 hover:bg-slate-100'
-                              }`}
-                            >
-                              {source.active ? 'Active' : 'Inactive'}
-                            </button>
-                          </td>
-                          <td className="py-4 text-right">
-                            <div className="flex items-center justify-end space-x-2">
-                              <a
-                                href={source.productUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"
-                                title="Open URL"
-                              >
-                                <ExternalLink size={13} />
-                              </a>
-                              <button
-                                onClick={() => handleDeleteSource(source.id)}
-                                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition animate-none cursor-pointer"
-                                title="Delete Link"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </td>
+            <div className="lg:col-span-2 space-y-8">
+              {/* Success Table */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                <h3 className="font-display font-bold text-sm text-emerald-750 border-b border-slate-100 pb-3 flex items-center space-x-2">
+                  <CheckCircle2 size={16} className="text-emerald-500" />
+                  <span>Verified Active Retailer Sources ({sources.filter(s => s.status === 'Success').length})</span>
+                </h3>
+                
+                {loading ? (
+                  <div className="flex h-32 items-center justify-center text-slate-400 text-xs font-semibold space-x-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                    <span>Loading...</span>
+                  </div>
+                ) : sources.filter(s => s.status === 'Success').length === 0 ? (
+                  <div className="text-center py-6 text-slate-400 text-xs">
+                    No active verified success sources found.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-left">
+                      <thead>
+                        <tr className="border-b border-slate-100">
+                          <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Product</th>
+                          <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Retailer</th>
+                          <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Extracted Price</th>
+                          <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Active</th>
+                          <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {sources.filter(s => s.status === 'Success').map((source) => (
+                          <tr key={source.id} className="hover:bg-slate-50/50 transition">
+                            <td className="py-4 pr-3 max-w-[200px]">
+                              <div className="space-y-1">
+                                <Link 
+                                  href={`/product/${source.productId}`}
+                                  className="font-display font-extrabold text-xs text-slate-800 hover:text-blue-600 transition block truncate"
+                                >
+                                  {source.productName}
+                                </Link>
+                                <span className="text-[10px] text-slate-400 block font-mono">
+                                  {source.productId}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-4">
+                              <span className="inline-flex items-center space-x-1 text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
+                                <Globe size={10} className="text-slate-400" />
+                                <span>{source.retailer}</span>
+                              </span>
+                            </td>
+                            <td className="py-4">
+                              <div className="space-y-1">
+                                <span className="font-display font-black text-xs text-slate-700">
+                                  ₹{source.lastPrice > 0 ? source.lastPrice.toLocaleString('en-IN') : 'N/A'}
+                                </span>
+                                <span className="text-[9px] text-slate-400 block">
+                                  {source.lastChecked ? new Date(source.lastChecked).toLocaleString() : 'Never'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-4 text-center">
+                              <button
+                                onClick={() => handleToggleActive(source)}
+                                className={`inline-flex items-center text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border cursor-pointer transition ${
+                                  source.active 
+                                    ? 'text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100'
+                                    : 'text-slate-400 bg-slate-50 border-slate-200 hover:bg-slate-100'
+                                }`}
+                              >
+                                {source.active ? 'Active' : 'Inactive'}
+                              </button>
+                            </td>
+                            <td className="py-4 text-right">
+                              <div className="flex items-center justify-end space-x-2">
+                                <a
+                                  href={source.productUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"
+                                  title="Open URL"
+                                >
+                                  <ExternalLink size={13} />
+                                </a>
+                                <button
+                                  onClick={() => handleDeleteSource(source.id)}
+                                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition animate-none cursor-pointer"
+                                  title="Delete Link"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Failed Table */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                <h3 className="font-display font-bold text-sm text-red-755 border-b border-slate-100 pb-3 flex items-center space-x-2">
+                  <XCircle size={16} className="text-red-500" />
+                  <span>Crawler Failures / Unverified Sources ({sources.filter(s => s.status !== 'Success').length})</span>
+                </h3>
+                
+                {loading ? (
+                  <div className="flex h-32 items-center justify-center text-slate-400 text-xs font-semibold space-x-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                    <span>Loading...</span>
+                  </div>
+                ) : sources.filter(s => s.status !== 'Success').length === 0 ? (
+                  <div className="text-center py-6 text-slate-400 text-xs">
+                    No failed scraper sources found.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-left">
+                      <thead>
+                        <tr className="border-b border-slate-100">
+                          <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Product</th>
+                          <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Retailer</th>
+                          <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Scrape Failure Reason</th>
+                          <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Last Attempted</th>
+                          <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {sources.filter(s => s.status !== 'Success').map((source) => (
+                          <tr key={source.id} className="hover:bg-slate-50/50 transition">
+                            <td className="py-4 pr-3 max-w-[160px]">
+                              <div className="space-y-1">
+                                <Link 
+                                  href={`/product/${source.productId}`}
+                                  className="font-display font-extrabold text-xs text-slate-800 hover:text-blue-600 transition block truncate"
+                                >
+                                  {source.productName}
+                                </Link>
+                                <span className="text-[10px] text-slate-400 block font-mono">
+                                  {source.productId}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-4">
+                              <span className="inline-flex items-center space-x-1 text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
+                                <Globe size={10} className="text-slate-400" />
+                                <span>{source.retailer}</span>
+                              </span>
+                            </td>
+                            <td className="py-4 text-xs font-mono text-red-650 max-w-[200px] truncate animate-none" title={source.failureReason}>
+                              {source.failureReason || 'unknown failure or timeout'}
+                            </td>
+                            <td className="py-4 text-[10px] text-slate-400">
+                              {source.lastChecked ? new Date(source.lastChecked).toLocaleString() : 'Never'}
+                            </td>
+                            <td className="py-4 text-right">
+                              <div className="flex items-center justify-end space-x-2">
+                                <a
+                                  href={source.productUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"
+                                  title="Open URL"
+                                >
+                                  <ExternalLink size={13} />
+                                </a>
+                                <button
+                                  onClick={() => handleDeleteSource(source.id)}
+                                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition animate-none cursor-pointer"
+                                  title="Delete Link"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
