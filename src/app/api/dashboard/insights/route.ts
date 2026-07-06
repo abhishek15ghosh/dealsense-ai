@@ -159,10 +159,11 @@ export async function GET() {
       })
     );
 
-    // 2. Compute dynamic dashboard categories
+    // 2. Compute dynamic dashboard categories using only products with verified prices
+    const activeProducts = fullProducts.filter((p) => p.bestDealPrice > 0);
 
     // A. Biggest absolute drops
-    const biggestDrops = [...fullProducts]
+    const biggestDrops = [...activeProducts]
       .map((p) => {
         const originalPrice = p.prices.length > 0 ? p.prices[0].originalPrice : p.bestDealPrice * 1.15;
         const dropAmount = originalPrice - p.bestDealPrice;
@@ -173,13 +174,13 @@ export async function GET() {
       .slice(0, 6);
 
     // B. Trending deals (STRONG BUY or BUY NOW sorted by confidence)
-    const trendingDeals = [...fullProducts]
+    const trendingDeals = [...activeProducts]
       .filter((p) => p.aiRecommendation.decision === 'STRONG BUY' || p.aiRecommendation.decision === 'BUY NOW' || p.aiRecommendation.decision === 'STRONG_BUY' || p.aiRecommendation.decision === 'BUY_NOW')
       .sort((a, b) => b.aiRecommendation.confidence - a.aiRecommendation.confidence)
       .slice(0, 4);
 
     // C. Recently discounted (priceTrend is 'down' or has positive discount percentage)
-    const recentlyDiscounted = [...fullProducts]
+    const recentlyDiscounted = [...activeProducts]
       .map((p) => {
         const originalPrice = p.prices.length > 0 ? p.prices[0].originalPrice : p.bestDealPrice * 1.15;
         const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - p.bestDealPrice) / originalPrice) * 100) : 0;
@@ -194,12 +195,13 @@ export async function GET() {
       .slice(0, 6);
 
     // Overall stats
-    const totalDiscountPct = fullProducts.reduce((acc, curr) => {
+    const activeProductsForStats = activeProducts;
+    const totalDiscountPct = activeProductsForStats.reduce((acc, curr) => {
       const original = curr.prices.length > 0 ? curr.prices[0].originalPrice : curr.bestDealPrice * 1.15;
       const discount = original > 0 ? ((original - curr.bestDealPrice) / original) * 100 : 0;
       return acc + discount;
     }, 0);
-    const avgDiscount = fullProducts.length > 0 ? Math.round(totalDiscountPct / fullProducts.length) : 0;
+    const avgDiscount = activeProductsForStats.length > 0 ? Math.round(totalDiscountPct / activeProductsForStats.length) : 0;
 
     return NextResponse.json({
       success: true,
