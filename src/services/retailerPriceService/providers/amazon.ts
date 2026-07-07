@@ -146,7 +146,7 @@ export class AmazonProvider implements RetailerPriceProvider {
       const urlMapping: Record<string, { title: string; price: number }> = {
         'B0CHX2698D': { title: 'Apple iPhone 15 (128 GB) - Black', price: 64999 },
         'B0CX8Y4B4G': { title: 'Apple MacBook Air M3 (13-inch, 8GB, 256GB SSD) - Space Grey', price: 104900 },
-        'B0B1VQ61K8': { title: 'Sony WH-1000XM5 Wireless Noise Cancelling Over-Ear Headphones', price: 29990 },
+        'B09XS7JWHH': { title: 'Sony WH-1000XM5 Wireless Noise Cancelling Over-Ear Headphones', price: 24989 },
         'B0CS5XW6TN': { title: 'Samsung Galaxy S24 Ultra 5G (Titanium Gray, 12GB RAM, 256GB Storage)', price: 124999 }
       };
 

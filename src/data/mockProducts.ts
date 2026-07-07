@@ -181,9 +181,9 @@ export const mockProducts: Product[] = [
     prices: [
       {
         storeName: 'Amazon',
-        price: 29990,
+        price: 24989,
         originalPrice: 34990,
-        url: 'https://www.amazon.in/dp/B0B1VQ61K8',
+        url: 'https://www.amazon.in/dp/B09XS7JWHH',
         inStock: true,
         deliveryDays: 2,
       },
