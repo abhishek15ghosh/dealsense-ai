@@ -138,6 +138,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
     doc.bestDealPrice = currentBestPrice;
     doc.bestDealStore = bestDealStore;
 
+    const lowestRecordedPrice = doc.lowestRecordedPrice || currentBestPrice;
+    const highestRecordedPrice = doc.highestRecordedPrice || currentBestPrice * 1.15;
+    const trendVal = doc.priceTrend || 'stable';
+    const prevDecision = doc.aiRecommendation?.decision;
+
     if (currentBestPrice <= 0) {
       doc.aiRecommendation = {
         decision: 'WAIT',
@@ -157,9 +162,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
       };
     } else {
       // Calculate inputs for the AI Deal Engine
-      const lowestRecordedPrice = doc.lowestRecordedPrice || currentBestPrice;
-      const highestRecordedPrice = doc.highestRecordedPrice || currentBestPrice * 1.15;
-      const trendVal = doc.priceTrend || 'stable';
       const firstSource = sources[0];
       const msrp = firstSource ? firstSource.originalPrice : currentBestPrice;
       const discountPercentage = deal.savingsPct;
@@ -257,7 +259,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     await doc.save();
 
     const isBuyRecommendation = (dec?: string) => dec === 'STRONG BUY' || dec === 'BUY NOW' || dec === 'STRONG_BUY' || dec === 'BUY_NOW';
-    if (isBuyRecommendation(currentDecision) && !isBuyRecommendation(prevDecision)) {
+    if (isBuyRecommendation(doc.aiRecommendation?.decision) && !isBuyRecommendation(prevDecision)) {
       const { triggerWatchlistNotificationForBuyNow } = await import('@/services/notificationService');
       await triggerWatchlistNotificationForBuyNow(doc.customId, doc.name);
     }
@@ -306,8 +308,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
         confidence: doc.aiRecommendation.confidence,
         reasoning: doc.aiRecommendation.reasoning,
         summary: doc.aiRecommendation.summary,
-        expectedBetterPriceRange: dealOutput.expectedBetterPriceRange,
-        bestPlatform: dealOutput.bestPlatform,
+        expectedBetterPriceRange: doc.aiRecommendation.expectedBetterPriceRange,
+        bestPlatform: doc.aiRecommendation.bestPlatform,
         estimatedSavings: doc.aiRecommendation.estimatedSavings || 0,
         bestExpectedPurchaseDate: doc.aiRecommendation.bestExpectedPurchaseDate || 'Today'
       },
