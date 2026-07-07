@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
             Croma: h.Croma,
             'Reliance Digital': h['Reliance Digital']
           })),
-          aiRecommendation: {
+          aiRecommendation: bestDealPrice > 0 ? {
             decision: doc.aiRecommendation.decision,
             confidence: doc.aiRecommendation.confidence,
             reasoning: doc.aiRecommendation.reasoning,
@@ -162,6 +162,15 @@ export async function GET(request: NextRequest) {
             bestPlatform: doc.aiRecommendation.bestPlatform,
             estimatedSavings: doc.aiRecommendation.estimatedSavings || 0,
             bestExpectedPurchaseDate: doc.aiRecommendation.bestExpectedPurchaseDate || 'Today'
+          } : {
+            decision: 'WAIT',
+            confidence: 0,
+            summary: 'Recommendation unavailable because no live verified retailer prices were found.',
+            reasoning: ['Live price data is currently unavailable across all sources.'],
+            expectedBetterPriceRange: 'N/A',
+            bestPlatform: 'N/A',
+            estimatedSavings: 0,
+            bestExpectedPurchaseDate: 'N/A'
           }
         };
       })

@@ -25,9 +25,8 @@ export async function GET(request: NextRequest) {
       userAlerts.map(async (a) => {
         let latestPrice = a.currentPrice;
 
-        // Try to find the latest platform specific price
         const storeSource = await ProductSource.findOne({ productId: a.productId, platform: a.storeName });
-        if (storeSource) {
+        if (storeSource && storeSource.status === 'Success' && storeSource.active === true) {
           latestPrice = storeSource.currentPrice;
         } else {
           // Fallback to canonical product best deal price
@@ -47,7 +46,7 @@ export async function GET(request: NextRequest) {
         let triggeredAt = a.triggeredAt;
 
         // If active alert is now meeting the target price threshold, trigger it
-        if (status === 'active' && latestPrice <= a.targetPrice) {
+        if (status === 'active' && latestPrice !== undefined && latestPrice !== null && latestPrice > 0 && latestPrice <= a.targetPrice) {
           isTriggered = true;
           status = 'triggered';
           triggeredAt = triggeredAt || new Date();

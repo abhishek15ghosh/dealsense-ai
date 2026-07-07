@@ -150,7 +150,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
         summary: 'Recommendation unavailable because no live verified retailer prices were found.',
         reasoning: ['Live price data is currently unavailable across all sources.'],
         estimatedSavings: 0,
-        bestExpectedPurchaseDate: 'N/A'
+        bestExpectedPurchaseDate: 'N/A',
+        expectedBetterPriceRange: 'N/A',
+        bestPlatform: 'N/A'
       };
       doc.aiPricePrediction = {
         nextPredictedDropDate: 'N/A',

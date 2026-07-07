@@ -6,7 +6,7 @@ import { useApp } from '@/context/AppContext';
 import { mockProducts, PriceHistoryPoint } from '@/data/mockProducts';
 import DashboardLayout from '@/components/DashboardLayout';
 import PriceChart from '@/components/PriceChart';
-import { getVerifiedBestDeal } from '@/lib/priceUtils';
+import { getVerifiedBestDeal, isValidSourceUrl } from '@/lib/priceUtils';
 import Image from 'next/image';
 import { 
   Heart, 
@@ -113,13 +113,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
     }
   };
 
-  const isValidUrl = (url?: string) => {
-    if (!url) return false;
-    const lowerUrl = url.toLowerCase();
-    if (lowerUrl.includes('mock')) return false;
-    if (lowerUrl.includes('zipcare') || lowerUrl.includes('warranty') || lowerUrl.includes('protect') || lowerUrl.includes('accessory')) return false;
-    return lowerUrl.startsWith('http');
-  };
+
 
   useEffect(() => {
     let active = true;
@@ -273,8 +267,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
     }
   };
 
-  const aiStyles = getAiCardColor(product.aiRecommendation.decision);
-  const verifiedPrices = product.prices.filter(p => p.status === 'Success' && p.price > 0 && isValidUrl(p.url));
+  const verifiedPrices = product.prices.filter(p => p.status === 'Success' && p.price > 0 && isValidSourceUrl(p.url));
   
   // Format array to match SimpleProductSource format
   const simpleSources = product.prices.map(p => ({
@@ -295,6 +288,27 @@ export default function ProductDetailsPage({ params }: PageProps) {
 
   const savingAmount = originalPrice - currentBestPrice;
   const savingPct = deal.savingsPct;
+
+  const displayRecommendation = isBestPriceAvailable ? product.aiRecommendation : {
+    decision: 'WAIT' as const,
+    confidence: 0,
+    summary: 'AI Deal Intelligence is currently unavailable because there are no verified live prices for this product.',
+    reasoning: ['Please link a valid, active retailer source to enable AI analysis.'],
+    expectedBetterPriceRange: 'N/A',
+    bestPlatform: 'N/A',
+    estimatedSavings: 0,
+    bestExpectedPurchaseDate: 'N/A'
+  };
+
+  const displayPrediction = isBestPriceAvailable ? product.aiPricePrediction : {
+    nextPredictedDropDate: 'N/A',
+    predictedDropAmount: 0,
+    confidenceScore: 0,
+    forecast: [],
+    analysis: 'No price prediction is available because no verified live retail prices exist.'
+  };
+
+  const aiStyles = getAiCardColor(displayRecommendation.decision);
 
   // Adapt dynamic charts data by cleaning undefined platforms
   const formattedChartData = product.priceHistory.map((h) => {
@@ -430,7 +444,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
                 </span>
               </div>
               <span className={`px-3 py-1 rounded-full text-xs font-black tracking-wider uppercase ${aiStyles.badge}`}>
-                {product.aiRecommendation.decision.replace('_', ' ')}
+                {displayRecommendation.decision.replace('_', ' ')}
               </span>
             </div>
 
@@ -439,7 +453,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
               <div className="sm:col-span-4 flex flex-col items-center justify-center space-y-1">
                 <div className="relative flex items-center justify-center w-24 h-24 rounded-full border-4 border-slate-200">
                   <div className="absolute font-display font-black text-lg text-slate-800">
-                    {product.aiRecommendation.confidence}%
+                    {displayRecommendation.confidence}%
                   </div>
                   {/* Gauge Arc */}
                   <svg className="w-full h-full transform -rotate-90">
@@ -451,7 +465,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
                       strokeWidth="6"
                       fill="transparent"
                       strokeDasharray="226"
-                      strokeDashoffset={226 - (226 * product.aiRecommendation.confidence) / 100}
+                      strokeDashoffset={226 - (226 * displayRecommendation.confidence) / 100}
                       className="translate-x-1 translate-y-1"
                     />
                   </svg>
@@ -464,10 +478,10 @@ export default function ProductDetailsPage({ params }: PageProps) {
               {/* Recommendation summary */}
               <div className="sm:col-span-8 space-y-2">
                 <p className="text-xs font-semibold text-slate-700 leading-relaxed italic">
-                  &ldquo;{product.aiRecommendation.summary}&rdquo;
+                  &ldquo;{displayRecommendation.summary}&rdquo;
                 </p>
                 <div className="space-y-1.5 pt-1">
-                  {product.aiRecommendation.reasoning.map((reason: string, index: number) => (
+                  {displayRecommendation.reasoning.map((reason: string, index: number) => (
                     <div key={index} className="flex items-start space-x-2 text-[11px] text-slate-600">
                       <span className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-1.5 flex-shrink-0" />
                       <p>{reason}</p>
@@ -477,28 +491,28 @@ export default function ProductDetailsPage({ params }: PageProps) {
 
                 {/* Expected Price Range, Best Platform, Savings & Expected Date */}
                 <div className="grid grid-cols-2 gap-3 pt-3 mt-3 border-t border-slate-200/50 text-[10px] uppercase font-extrabold tracking-wider text-slate-500">
-                  {product.aiRecommendation.expectedBetterPriceRange && (
+                  {displayRecommendation.expectedBetterPriceRange && displayRecommendation.expectedBetterPriceRange !== 'N/A' && (
                     <div className="bg-white/50 p-2.5 rounded-xl border border-slate-200/20">
                       <span className="text-slate-400 block text-[8px]">Projected price range</span>
-                      <span className="text-slate-700 text-xs font-black">{product.aiRecommendation.expectedBetterPriceRange}</span>
+                      <span className="text-slate-700 text-xs font-black">{displayRecommendation.expectedBetterPriceRange}</span>
                     </div>
                   )}
-                  {product.aiRecommendation.bestPlatform && (
+                  {displayRecommendation.bestPlatform && displayRecommendation.bestPlatform !== 'N/A' && (
                     <div className="bg-white/50 p-2.5 rounded-xl border border-slate-200/20">
                       <span className="text-slate-400 block text-[8px]">Best Store Platform</span>
-                      <span className="text-slate-700 text-xs font-black">{product.aiRecommendation.bestPlatform}</span>
+                      <span className="text-slate-700 text-xs font-black">{displayRecommendation.bestPlatform}</span>
                     </div>
                   )}
-                  {product.aiRecommendation.estimatedSavings !== undefined && (
+                  {displayRecommendation.estimatedSavings !== undefined && displayRecommendation.estimatedSavings > 0 && (
                     <div className="bg-white/50 p-2.5 rounded-xl border border-slate-200/20">
                       <span className="text-slate-400 block text-[8px]">Estimated Savings</span>
-                      <span className="text-green-600 text-xs font-black">₹{product.aiRecommendation.estimatedSavings.toLocaleString('en-IN')}</span>
+                      <span className="text-green-600 text-xs font-black">₹{displayRecommendation.estimatedSavings.toLocaleString('en-IN')}</span>
                     </div>
                   )}
-                  {product.aiRecommendation.bestExpectedPurchaseDate && (
+                  {displayRecommendation.bestExpectedPurchaseDate && displayRecommendation.bestExpectedPurchaseDate !== 'N/A' && (
                     <div className="bg-white/50 p-2.5 rounded-xl border border-slate-200/20">
                       <span className="text-slate-400 block text-[8px]">Best Purchase Date</span>
-                      <span className="text-slate-700 text-xs font-black">{product.aiRecommendation.bestExpectedPurchaseDate}</span>
+                      <span className="text-slate-700 text-xs font-black">{displayRecommendation.bestExpectedPurchaseDate}</span>
                     </div>
                   )}
                 </div>
@@ -507,7 +521,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
           </div>
 
           {/* AI Price Prediction Card */}
-          {product.aiPricePrediction && (
+          {displayPrediction && (
             <div className="bg-gradient-to-br from-indigo-50/50 to-purple-50/20 border border-indigo-100 p-6 rounded-3xl space-y-4 shadow-sm">
               <div className="flex items-center space-x-2 border-b border-indigo-100/50 pb-3">
                 <span className="relative flex h-2 w-2">
@@ -523,24 +537,24 @@ export default function ProductDetailsPage({ params }: PageProps) {
                 <div className="bg-white/80 p-4 rounded-2xl border border-indigo-50/60 flex flex-col justify-between">
                   <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">Next Predicted Drop</span>
                   <span className="text-sm font-black text-indigo-700 font-display mt-1">
-                    {product.aiPricePrediction.nextPredictedDropDate || 'N/A'}
+                    {displayPrediction.nextPredictedDropDate || 'N/A'}
                   </span>
                 </div>
                 <div className="bg-white/80 p-4 rounded-2xl border border-indigo-50/60 flex flex-col justify-between">
                   <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">Projected Savings</span>
                   <span className="text-sm font-black text-green-600 font-display mt-1">
-                    {product.aiPricePrediction.predictedDropAmount > 0 
-                      ? `₹${product.aiPricePrediction.predictedDropAmount.toLocaleString('en-IN')}`
+                    {displayPrediction.predictedDropAmount > 0 
+                      ? `₹${displayPrediction.predictedDropAmount.toLocaleString('en-IN')}`
                       : '₹0'
                     }
                   </span>
                 </div>
               </div>
 
-              {product.aiPricePrediction.analysis && (
+              {displayPrediction.analysis && (
                 <div className="text-xs text-slate-600 leading-relaxed border-t border-indigo-50/50 pt-3">
                   <p className="font-semibold text-slate-800 mb-1">Pricing Trajectory Analysis:</p>
-                  <p className="italic text-slate-500">&ldquo;{product.aiPricePrediction.analysis}&rdquo;</p>
+                  <p className="italic text-slate-500">&ldquo;{displayPrediction.analysis}&rdquo;</p>
                 </div>
               )}
             </div>
@@ -609,7 +623,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
                           'bg-[#3b82f6]'
                         }`} />
                         <span>{storePrice.storeName}</span>
-                        {isBest && isBestPriceAvailable && isValidUrl(storePrice.url) && storePrice.status !== 'Failed' && (
+                        {isBest && isBestPriceAvailable && isValidSourceUrl(storePrice.url) && storePrice.status !== 'Failed' && (
                           <span className="inline-block px-1.5 py-0.5 bg-blue-600 text-white rounded text-[8px] font-black uppercase tracking-wider">
                             Best Deal
                           </span>
@@ -618,7 +632,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
                       <td className="py-4 text-right font-black text-slate-800">
                         {refreshing ? (
                           <span className="text-slate-400 animate-pulse text-[11px]">Updating...</span>
-                        ) : (storePrice.status === 'Failed' || !isValidUrl(storePrice.url)) ? (
+                        ) : (storePrice.status === 'Failed' || !isValidSourceUrl(storePrice.url)) ? (
                           <span className="text-slate-400 font-medium italic text-[11px]">Price unavailable</span>
                         ) : (
                           `₹${storePrice.price.toLocaleString('en-IN')}`
@@ -626,13 +640,13 @@ export default function ProductDetailsPage({ params }: PageProps) {
                       </td>
                       <td className="py-4 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                          (storePrice.status === 'Failed' || !isValidUrl(storePrice.url))
+                          (storePrice.status === 'Failed' || !isValidSourceUrl(storePrice.url))
                             ? 'bg-slate-50 text-slate-500 border border-slate-200/50'
                             : storePrice.inStock
                               ? 'bg-green-50 text-green-700 border border-green-100'
                               : 'bg-red-50 text-red-700 border border-red-100'
                         }`}>
-                          {(storePrice.status === 'Failed' || !isValidUrl(storePrice.url)) ? 'N/A' : (storePrice.inStock ? 'In Stock' : 'Out of Stock')}
+                          {(storePrice.status === 'Failed' || !isValidSourceUrl(storePrice.url)) ? 'N/A' : (storePrice.inStock ? 'In Stock' : 'Out of Stock')}
                         </span>
                       </td>
                       <td className="py-4 text-center text-slate-500 text-[10px]">
@@ -646,10 +660,10 @@ export default function ProductDetailsPage({ params }: PageProps) {
                           : 'Never'}
                       </td>
                       <td className="py-4 text-center text-slate-400">
-                        {(storePrice.status === 'Failed' || !isValidUrl(storePrice.url)) ? '--' : (storePrice.inStock ? `${storePrice.deliveryDays} Day Delivery` : '--')}
+                        {(storePrice.status === 'Failed' || !isValidSourceUrl(storePrice.url)) ? '--' : (storePrice.inStock ? `${storePrice.deliveryDays} Day Delivery` : '--')}
                       </td>
                       <td className="py-4 text-right">
-                        {isValidUrl(storePrice.url) && storePrice.status !== 'Failed' ? (
+                        {isValidSourceUrl(storePrice.url) && storePrice.status !== 'Failed' ? (
                           <a
                             href={storePrice.url}
                             target="_blank"
@@ -751,7 +765,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
       {/* Price History Area Chart */}
       <PriceChart 
         data={formattedChartData as unknown as PriceHistoryPoint[]} 
-        forecast={product.aiPricePrediction?.forecast}
+        forecast={displayPrediction?.forecast}
         verifiedStores={verifiedPrices.map(p => p.storeName)}
       />
 
