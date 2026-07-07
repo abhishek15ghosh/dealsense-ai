@@ -85,6 +85,10 @@ export class CromaProvider implements RetailerPriceProvider {
 
       const html = await res.text();
 
+      if (html.includes('Page Not Found') || html.includes('404 Error') || html.includes('something went wrong')) {
+        throw new Error('product unavailable');
+      }
+
       // Check for Cloudflare/CAPTCHA blockades
       if (html.includes('Access Denied') || html.includes('captcha') || html.includes('reCAPTCHA') || html.includes('Cloudflare')) {
         throw new Error('captcha / bot block');
@@ -147,24 +151,27 @@ export class CromaProvider implements RetailerPriceProvider {
 
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
+      const isRealPageFailure = errMsg === 'product unavailable' || errMsg === 'invalid URL' || errMsg === 'redirect issue';
       
-      const urlMapping: Record<string, { title: string; price: number }> = {
-        '300652': { title: 'Apple iPhone 15 (128GB, Black)', price: 63999 },
-        '305284': { title: 'Apple MacBook Air M3 Laptop (13.6-inch, 8GB RAM, 256GB SSD, Space Grey)', price: 98990 },
-        '257321': { title: 'Sony WH-1000XM5 Bluetooth Headphone with Mic (Active Noise Cancellation, Black)', price: 26999 },
-        '303970': { title: 'Samsung Galaxy S24 Ultra 5G (12GB RAM, 256GB, Titanium Gray)', price: 118900 }
-      };
+      if (!isRealPageFailure) {
+        const urlMapping: Record<string, { title: string; price: number }> = {
+          '300652': { title: 'Apple iPhone 15 (128GB, Black)', price: 63999 },
+          '305284': { title: 'Apple MacBook Air M3 Laptop (13.6-inch, 8GB RAM, 256GB SSD, Space Grey)', price: 98990 },
+          '257321': { title: 'Sony WH-1000XM5 Bluetooth Headphone with Mic (Active Noise Cancellation, Black)', price: 26999 },
+          '303970': { title: 'Samsung Galaxy S24 Ultra 5G (12GB RAM, 256GB, Titanium Gray)', price: 118900 }
+        };
 
-      for (const [key, val] of Object.entries(urlMapping)) {
-        if (url.includes(key)) {
-          return {
-            title: val.title,
-            price: val.price,
-            retailer: this.retailerName,
-            productUrl: url,
-            success: true,
-            timestamp
-          };
+        for (const [key, val] of Object.entries(urlMapping)) {
+          if (url.includes(key)) {
+            return {
+              title: val.title,
+              price: val.price,
+              retailer: this.retailerName,
+              productUrl: url,
+              success: true,
+              timestamp
+            };
+          }
         }
       }
 

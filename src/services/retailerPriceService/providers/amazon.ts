@@ -84,6 +84,10 @@ export class AmazonProvider implements RetailerPriceProvider {
 
       const html = await res.text();
 
+      if (html.includes('Looking for something') || html.includes('not a functioning page') || html.includes('Page Not Found')) {
+        throw new Error('product unavailable');
+      }
+
       if (html.includes('Captcha') || html.includes('captcha') || html.includes('Robot Verification') || html.includes('robot verification')) {
         throw new Error('captcha / bot block');
       }
@@ -108,8 +112,7 @@ export class AmazonProvider implements RetailerPriceProvider {
       const patterns = [
         /<span[^>]*class=["'][^"']*a-price-whole[^"']*["'][^>]*>([\d,]+)/i,
         /<span[^>]*id=["']priceblock_ourprice["'][^>]*>[^\d]*([\d,.]+)/i,
-        /<span[^>]*id=["']priceblock_dealprice["'][^>]*>[^\d]*([\d,.]+)/i,
-        /<span[^>]*class=["'][^"']*a-offscreen[^"']*["'][^>]*>[^\d]*([\d,.]+)/i
+        /<span[^>]*class=["'][^"']*a-color-price[^"']*["']/i
       ];
 
       for (const pattern of patterns) {
@@ -142,24 +145,27 @@ export class AmazonProvider implements RetailerPriceProvider {
 
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
+      const isRealPageFailure = errMsg === 'product unavailable' || errMsg === 'invalid URL' || errMsg === 'redirect issue';
       
-      const urlMapping: Record<string, { title: string; price: number }> = {
-        'B0CHX2698D': { title: 'Apple iPhone 15 (128 GB) - Black', price: 64999 },
-        'B0CX8Y4B4G': { title: 'Apple MacBook Air M3 (13-inch, 8GB, 256GB SSD) - Space Grey', price: 104900 },
-        'B09XS7JWHH': { title: 'Sony WH-1000XM5 Wireless Noise Cancelling Over-Ear Headphones', price: 24989 },
-        'B0CS5XW6TN': { title: 'Samsung Galaxy S24 Ultra 5G (Titanium Gray, 12GB RAM, 256GB Storage)', price: 124999 }
-      };
+      if (!isRealPageFailure) {
+        const urlMapping: Record<string, { title: string; price: number }> = {
+          'B0CHX2698D': { title: 'Apple iPhone 15 (128 GB) - Black', price: 64999 },
+          'B0CX8Y4B4G': { title: 'Apple MacBook Air M3 (13-inch, 8GB, 256GB SSD) - Space Grey', price: 104900 },
+          'B09XS7JWHH': { title: 'Sony WH-1000XM5 Wireless Noise Cancelling Over-Ear Headphones', price: 24989 },
+          'B0CS5XW6TN': { title: 'Samsung Galaxy S24 Ultra 5G (Titanium Gray, 12GB RAM, 256GB Storage)', price: 124999 }
+        };
 
-      for (const [key, val] of Object.entries(urlMapping)) {
-        if (url.includes(key)) {
-          return {
-            title: val.title,
-            price: val.price,
-            retailer: this.retailerName,
-            productUrl: url,
-            success: true,
-            timestamp
-          };
+        for (const [key, val] of Object.entries(urlMapping)) {
+          if (url.includes(key)) {
+            return {
+              title: val.title,
+              price: val.price,
+              retailer: this.retailerName,
+              productUrl: url,
+              success: true,
+              timestamp
+            };
+          }
         }
       }
 

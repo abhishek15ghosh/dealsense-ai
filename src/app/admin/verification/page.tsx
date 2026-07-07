@@ -114,6 +114,8 @@ export default function AdminVerificationPage() {
   // Tracking scan action state
   const [scanning, setScanning] = useState(false);
   const [latestTriggered, setLatestTriggered] = useState<TriggeredAlert[]>([]);
+  const [verifyingSources, setVerifyingSources] = useState(false);
+  const [verificationReport, setVerificationReport] = useState<any[] | null>(null);
 
   // Fetch logs and system health status from API
   const loadLogsData = async () => {
@@ -298,6 +300,31 @@ export default function AdminVerificationPage() {
     }
   };
 
+  const runSourceVerification = async () => {
+    setVerifyingSources(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+    setVerificationReport(null);
+    try {
+      const res = await fetch('/api/admin/verify-sources', {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.success) {
+        setVerificationReport(data.report || []);
+        setSuccessMessage('Verification completed successfully! Database statuses updated.');
+        loadData();
+      } else {
+        setErrorMessage(data.error || 'Failed to verify sources.');
+      }
+    } catch (err) {
+      console.error('Error running source verification:', err);
+      setErrorMessage('Network error running source verification.');
+    } finally {
+      setVerifyingSources(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -311,15 +338,117 @@ export default function AdminVerificationPage() {
               Link products to real retailer URLs and check scraper crawler success or failures.
             </p>
           </div>
-          <button
-            onClick={runPriceCheckNow}
-            disabled={scanning}
-            className="inline-flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-5 py-2.5 rounded-2xl text-xs font-bold transition shadow-md shadow-blue-500/10 cursor-pointer"
-          >
-            <RefreshCw size={14} className={scanning ? 'animate-spin' : ''} />
-            <span>{scanning ? 'Running Price Check...' : 'Run Price Check Now'}</span>
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={runSourceVerification}
+              disabled={verifyingSources || scanning}
+              className="inline-flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 disabled:from-slate-400 disabled:to-slate-500 text-white px-5 py-2.5 rounded-2xl text-xs font-bold transition shadow-md shadow-emerald-500/10 cursor-pointer"
+            >
+              <CheckCircle2 size={14} className={verifyingSources ? 'animate-spin' : ''} />
+              <span>{verifyingSources ? 'Verifying Sources...' : 'Verify All Retailer Sources'}</span>
+            </button>
+            <button
+              onClick={runPriceCheckNow}
+              disabled={scanning || verifyingSources}
+              className="inline-flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-5 py-2.5 rounded-2xl text-xs font-bold transition shadow-md shadow-blue-500/10 cursor-pointer"
+            >
+              <RefreshCw size={14} className={scanning ? 'animate-spin' : ''} />
+              <span>{scanning ? 'Running Price Check...' : 'Run Price Check Now'}</span>
+            </button>
+          </div>
         </div>
+
+        {/* Verification Report Section */}
+        {verificationReport !== null && (
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+              <div className="flex items-center space-x-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+                <h3 className="font-display font-bold text-slate-800 text-sm">Verify All Retailer Sources Report</h3>
+              </div>
+              <button 
+                onClick={() => setVerificationReport(null)}
+                className="text-slate-400 hover:text-slate-600 text-xs font-bold transition"
+              >
+                Dismiss Report
+              </button>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-100 text-left text-xs">
+                <thead>
+                  <tr className="text-slate-450 uppercase font-black text-[10px] tracking-wider bg-slate-50/50">
+                    <th className="py-3 px-4 rounded-l-xl">Product</th>
+                    <th className="py-3 px-4">Retailer</th>
+                    <th className="py-3 px-4">URL</th>
+                    <th className="py-3 px-4">HTTP Result</th>
+                    <th className="py-3 px-4">Match</th>
+                    <th className="py-3 px-4">Price Result</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 rounded-r-xl">Reason</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {verificationReport.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/30 transition">
+                      <td className="py-3 px-4 font-bold text-slate-800">{item.productName}</td>
+                      <td className="py-3 px-4 font-semibold text-slate-600">{item.retailer}</td>
+                      <td className="py-3 px-4">
+                        <a 
+                          href={item.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline line-clamp-1 max-w-[150px]"
+                        >
+                          {item.url}
+                        </a>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${
+                          item.httpResult.includes('200') || item.httpResult.includes('Bypassed')
+                            ? 'bg-green-50 text-green-700'
+                            : 'bg-red-50 text-red-750'
+                        }`}>
+                          {item.httpResult}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${
+                          item.productMatch === 'Match'
+                            ? 'bg-green-50 text-green-700'
+                            : 'bg-red-50 text-red-750'
+                        }`}>
+                          {item.productMatch}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${
+                          item.priceResult === 'Valid Price'
+                            ? 'bg-green-50 text-green-700'
+                            : 'bg-red-50 text-red-750'
+                        }`}>
+                          {item.priceResult}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 rounded-xl text-[10px] font-extrabold uppercase border ${
+                          item.status === 'Verified'
+                            ? 'bg-green-50/50 text-green-700 border-green-200'
+                            : 'bg-red-50/50 text-red-750 border-red-200'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-red-650 font-medium">{item.reason || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Latest Triggered Alerts Section */}
         {latestTriggered.length > 0 && (

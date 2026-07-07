@@ -134,108 +134,125 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const currentBestPrice = deal.bestPrice;
     const bestDealStore = deal.bestStore;
 
-    // Synchronize doc fields in the database
+    // Update current best price in Product details
     doc.bestDealPrice = currentBestPrice;
     doc.bestDealStore = bestDealStore;
 
-    // Calculate inputs for the AI Deal Engine
-    const lowestRecordedPrice = doc.lowestRecordedPrice || currentBestPrice;
-    const highestRecordedPrice = doc.highestRecordedPrice || currentBestPrice * 1.15;
-    const trendVal = doc.priceTrend || 'stable';
-    const firstSource = sources[0];
-    const msrp = firstSource ? firstSource.originalPrice : currentBestPrice;
-    const discountPercentage = deal.savingsPct;
-    const similarPricePlatformsCount = sources.filter((s) => s.currentPrice <= currentBestPrice * 1.02).length;
-    const stockAvailable = deal.hasDeal;
-    const priceVolatility = lowestRecordedPrice > 0 ? (highestRecordedPrice - lowestRecordedPrice) / lowestRecordedPrice : 0;
+    if (currentBestPrice <= 0) {
+      doc.aiRecommendation = {
+        decision: 'WAIT',
+        confidence: 0,
+        summary: 'Recommendation unavailable because no live verified retailer prices were found.',
+        reasoning: ['Live price data is currently unavailable across all sources.'],
+        estimatedSavings: 0,
+        bestExpectedPurchaseDate: 'N/A'
+      };
+      doc.aiPricePrediction = {
+        nextPredictedDropDate: 'N/A',
+        predictedDropAmount: 0,
+        confidenceScore: 0,
+        forecast: [],
+        analysis: 'No price prediction is available because no verified live retail prices exist.',
+        lastUpdated: new Date()
+      };
+    } else {
+      // Calculate inputs for the AI Deal Engine
+      const lowestRecordedPrice = doc.lowestRecordedPrice || currentBestPrice;
+      const highestRecordedPrice = doc.highestRecordedPrice || currentBestPrice * 1.15;
+      const trendVal = doc.priceTrend || 'stable';
+      const firstSource = sources[0];
+      const msrp = firstSource ? firstSource.originalPrice : currentBestPrice;
+      const discountPercentage = deal.savingsPct;
+      const similarPricePlatformsCount = sources.filter((s) => s.currentPrice <= currentBestPrice * 1.02).length;
+      const stockAvailable = deal.hasDeal;
+      const priceVolatility = lowestRecordedPrice > 0 ? (highestRecordedPrice - lowestRecordedPrice) / lowestRecordedPrice : 0;
 
-    const { generateDealDecision } = await import('@/services/aiDealEngine');
-    const dealOutput = await generateDealDecision({
-      name: doc.name,
-      category: doc.category,
-      currentBestPrice,
-      lowestRecordedPrice,
-      highestRecordedPrice,
-      trend7Day: trendVal,
-      trend30Day: trendVal,
-      discountPercentage,
-      similarPricePlatformsCount,
-      stockAvailable,
-      priceVolatility,
-      bestDealStore
-    });
+      const { generateDealDecision } = await import('@/services/aiDealEngine');
+      const dealOutput = await generateDealDecision({
+        name: doc.name,
+        category: doc.category,
+        currentBestPrice,
+        lowestRecordedPrice,
+        highestRecordedPrice,
+        trend7Day: trendVal,
+        trend30Day: trendVal,
+        discountPercentage,
+        similarPricePlatformsCount,
+        stockAvailable,
+        priceVolatility,
+        bestDealStore
+      });
 
-    const prevDecision = doc.aiRecommendation?.decision;
+      // Map recommendation from engine (with underscores) to database-compatible space formats
+      let currentDecision = 'WAIT';
+      if (dealOutput.recommendation === 'STRONG_BUY') currentDecision = 'STRONG BUY';
+      else if (dealOutput.recommendation === 'BUY_NOW') currentDecision = 'BUY NOW';
+      else if (dealOutput.recommendation === 'STRONG_WAIT') currentDecision = 'STRONG WAIT';
+      else if (dealOutput.recommendation === 'HIGH_RISK') currentDecision = 'HIGH RISK';
 
-    // Map recommendation from engine (with underscores) to database-compatible space formats
-    let currentDecision = 'WAIT';
-    if (dealOutput.recommendation === 'STRONG_BUY') currentDecision = 'STRONG BUY';
-    else if (dealOutput.recommendation === 'BUY_NOW') currentDecision = 'BUY NOW';
-    else if (dealOutput.recommendation === 'STRONG_WAIT') currentDecision = 'STRONG WAIT';
-    else if (dealOutput.recommendation === 'HIGH_RISK') currentDecision = 'HIGH RISK';
+      // Calculate AI price predictions first to get predictedDropAmount for Wait savings
+      const { generatePricePrediction } = await import('@/services/aiPredictionEngine');
+      const predictionOutput = await generatePricePrediction({
+        productId: doc.customId,
+        productName: doc.name,
+        currentPrice: currentBestPrice,
+        lowestPrice: lowestRecordedPrice,
+        highestPrice: highestRecordedPrice,
+        history: history.length > 0 ? history : sortedDailyHistory
+      });
 
-    // Calculate AI price predictions first to get predictedDropAmount for Wait savings
-    const { generatePricePrediction } = await import('@/services/aiPredictionEngine');
-    const predictionOutput = await generatePricePrediction({
-      productId: doc.customId,
-      productName: doc.name,
-      currentPrice: currentBestPrice,
-      lowestPrice: lowestRecordedPrice,
-      highestPrice: highestRecordedPrice,
-      history: history.length > 0 ? history : sortedDailyHistory
-    });
+      // Calculate chronological average price from PriceHistory
+      const historyPrices = history
+        .map(h => h.price ?? h.Amazon ?? h.Flipkart ?? h.Croma ?? h['Reliance Digital'] ?? 0)
+        .filter(p => p > 0);
+      const averagePrice = historyPrices.length > 0
+        ? Math.round(historyPrices.reduce((sum, p) => sum + p, 0) / historyPrices.length)
+        : currentBestPrice;
 
-    // Calculate chronological average price from PriceHistory
-    const historyPrices = history
-      .map(h => h.price ?? h.Amazon ?? h.Flipkart ?? h.Croma ?? h['Reliance Digital'] ?? 0)
-      .filter(p => p > 0);
-    const averagePrice = historyPrices.length > 0
-      ? Math.round(historyPrices.reduce((sum, p) => sum + p, 0) / historyPrices.length)
-      : currentBestPrice;
-
-    // Calculate Estimated Savings
-    let estimatedSavings = 0;
-    if (currentDecision === 'STRONG BUY' || currentDecision === 'BUY NOW') {
-      estimatedSavings = Math.max(0, Math.round(averagePrice - currentBestPrice));
-      if (estimatedSavings <= 0) {
-        estimatedSavings = Math.max(0, Math.round(msrp - currentBestPrice));
+      // Calculate Estimated Savings
+      let estimatedSavings = 0;
+      if (currentDecision === 'STRONG BUY' || currentDecision === 'BUY NOW') {
+        estimatedSavings = Math.max(0, Math.round(averagePrice - currentBestPrice));
+        if (estimatedSavings <= 0) {
+          estimatedSavings = Math.max(0, Math.round(msrp - currentBestPrice));
+        }
+      } else if (currentDecision === 'WAIT' || currentDecision === 'STRONG WAIT') {
+        estimatedSavings = predictionOutput.predictedDropAmount || 0;
       }
-    } else if (currentDecision === 'WAIT' || currentDecision === 'STRONG WAIT') {
-      estimatedSavings = predictionOutput.predictedDropAmount || 0;
+
+      // Calculate Best Expected Purchase Date
+      let bestExpectedPurchaseDate = 'Today';
+      if (currentDecision === 'STRONG BUY' || currentDecision === 'BUY NOW') {
+        bestExpectedPurchaseDate = 'Today';
+      } else if (currentDecision === 'WAIT' || currentDecision === 'STRONG WAIT') {
+        bestExpectedPurchaseDate = predictionOutput.nextPredictedDropDate && predictionOutput.nextPredictedDropDate !== 'N/A'
+          ? predictionOutput.nextPredictedDropDate
+          : 'Within 7-10 days';
+      } else if (currentDecision === 'HIGH RISK') {
+        bestExpectedPurchaseDate = 'After market stabilizes (approx 10-14 days)';
+      }
+
+      // Update document with new recommendation properties
+      doc.aiRecommendation = {
+        decision: currentDecision as 'STRONG BUY' | 'BUY NOW' | 'WAIT' | 'STRONG WAIT' | 'HIGH RISK',
+        confidence: dealOutput.confidenceScore,
+        reasoning: dealOutput.bulletReasons,
+        summary: dealOutput.simpleExplanation,
+        expectedBetterPriceRange: dealOutput.expectedBetterPriceRange,
+        bestPlatform: dealOutput.bestPlatform,
+        estimatedSavings,
+        bestExpectedPurchaseDate
+      };
+
+      doc.aiPricePrediction = {
+        nextPredictedDropDate: predictionOutput.nextPredictedDropDate,
+        predictedDropAmount: predictionOutput.predictedDropAmount,
+        confidenceScore: predictionOutput.confidenceScore,
+        forecast: predictionOutput.forecast,
+        analysis: predictionOutput.analysis,
+        lastUpdated: new Date()
+      };
     }
-
-    // Calculate Best Expected Purchase Date
-    let bestExpectedPurchaseDate = 'Today';
-    if (currentDecision === 'STRONG BUY' || currentDecision === 'BUY NOW') {
-      bestExpectedPurchaseDate = 'Today';
-    } else if (currentDecision === 'WAIT' || currentDecision === 'STRONG WAIT') {
-      bestExpectedPurchaseDate = predictionOutput.nextPredictedDropDate && predictionOutput.nextPredictedDropDate !== 'N/A'
-        ? predictionOutput.nextPredictedDropDate
-        : 'Within 7-10 days';
-    } else if (currentDecision === 'HIGH RISK') {
-      bestExpectedPurchaseDate = 'After market stabilizes (approx 10-14 days)';
-    }
-
-    // Update document with new recommendation properties
-    doc.aiRecommendation = {
-      decision: currentDecision as 'STRONG BUY' | 'BUY NOW' | 'WAIT' | 'STRONG WAIT' | 'HIGH RISK',
-      confidence: dealOutput.confidenceScore,
-      reasoning: dealOutput.bulletReasons,
-      summary: dealOutput.simpleExplanation,
-      expectedBetterPriceRange: dealOutput.expectedBetterPriceRange,
-      bestPlatform: dealOutput.bestPlatform,
-      estimatedSavings,
-      bestExpectedPurchaseDate
-    };
-
-    doc.aiPricePrediction = {
-      nextPredictedDropDate: predictionOutput.nextPredictedDropDate,
-      predictedDropAmount: predictionOutput.predictedDropAmount,
-      confidenceScore: predictionOutput.confidenceScore,
-      forecast: predictionOutput.forecast,
-      analysis: predictionOutput.analysis,
-      lastUpdated: new Date()
-    };
 
     await doc.save();
 

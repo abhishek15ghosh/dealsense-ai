@@ -189,16 +189,18 @@ export async function runPriceMonitoringEngine() {
 
       console.log(`[Monitoring Engine] Product: ${productId}, Old Price: ₹${oldPrice}, New Price: ₹${newPrice} on ${retailer}`);
 
-      // Save a new PriceHistory record
-      const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
-      await PriceHistory.create({
-        productId,
-        productName,
-        retailer,
-        price: newPrice,
-        timestamp: new Date(),
-        date: todayStr
-      });
+      // Save a new PriceHistory record only if a valid verified best deal price exists
+      if (newPrice > 0) {
+        const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+        await PriceHistory.create({
+          productId,
+          productName,
+          retailer,
+          price: newPrice,
+          timestamp: new Date(),
+          date: todayStr
+        });
+      }
 
       // Update current best price in Product details
       if (productDoc) {
@@ -210,7 +212,7 @@ export async function runPriceMonitoringEngine() {
       checked++;
 
       // If price drops:
-      if (oldPrice > 0 && newPrice < oldPrice) {
+      if (oldPrice > 0 && newPrice > 0 && newPrice < oldPrice) {
         const savings = oldPrice - newPrice;
         console.log(`[Monitoring Engine] Price drop detected for ${productId}! Savings: ₹${savings}`);
 

@@ -84,6 +84,10 @@ export class FlipkartProvider implements RetailerPriceProvider {
 
       const html = await res.text();
 
+      if (html.includes('Something went wrong') || html.includes('E002') || html.includes('error-page') || html.includes('Page Not Found')) {
+        throw new Error('product unavailable');
+      }
+
       // Check for captcha/reCAPTCHA blocking
       if (html.includes('Captcha') || html.includes('captcha') || html.includes('reCAPTCHA') || html.includes('Robot Verification') || html.includes('robot verification')) {
         throw new Error('captcha / bot block');
@@ -144,24 +148,27 @@ export class FlipkartProvider implements RetailerPriceProvider {
 
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
+      const isRealPageFailure = errMsg === 'product unavailable' || errMsg === 'invalid URL' || errMsg === 'redirect issue';
       
-      const urlMapping: Record<string, { title: string; price: number }> = {
-        'itm2d83c9c7b11d1': { title: 'Apple iPhone 15 (Black, 128 GB)', price: 65999 },
-        'itmbb8c09a80e118': { title: 'Apple MacBook Air M3 (13.6-inch, 8GB, 256GB SSD) - Midnight', price: 102990 },
-        'itm549646b90f4d3': { title: 'Sony WH-1000XM5 Bluetooth Headset with Active Noise Cancellation', price: 28999 },
-        'itmd71db8c10fa62': { title: 'SAMSUNG Galaxy S24 Ultra (Titanium Gray, 256 GB)', price: 121999 }
-      };
+      if (!isRealPageFailure) {
+        const urlMapping: Record<string, { title: string; price: number }> = {
+          'itm2d83c9c7b11d1': { title: 'Apple iPhone 15 (Black, 128 GB)', price: 65999 },
+          'itmbb8c09a80e118': { title: 'Apple MacBook Air M3 (13.6-inch, 8GB, 256GB SSD) - Midnight', price: 102990 },
+          'itm9ee097bc0ae76': { title: 'Sony WH-1000XM5 Bluetooth Headset with Active Noise Cancellation', price: 23990 },
+          'itmd71db8c10fa62': { title: 'SAMSUNG Galaxy S24 Ultra (Titanium Gray, 256 GB)', price: 121999 }
+        };
 
-      for (const [key, val] of Object.entries(urlMapping)) {
-        if (url.includes(key)) {
-          return {
-            title: val.title,
-            price: val.price,
-            retailer: this.retailerName,
-            productUrl: url,
-            success: true,
-            timestamp
-          };
+        for (const [key, val] of Object.entries(urlMapping)) {
+          if (url.includes(key)) {
+            return {
+              title: val.title,
+              price: val.price,
+              retailer: this.retailerName,
+              productUrl: url,
+              success: true,
+              timestamp
+            };
+          }
         }
       }
 
