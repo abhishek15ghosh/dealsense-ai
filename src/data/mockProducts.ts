@@ -263,7 +263,7 @@ export const mockProducts: Product[] = [
         storeName: 'Croma',
         price: 121999,
         originalPrice: 139999,
-        url: 'https://www.croma.com/samsung-galaxy-s24-ultra-5g-12gb-ram-256gb-titanium-gray-/p/303970',
+        url: 'https://www.croma.com/samsung-galaxy-s24-ultra-5g-12gb-ram-256gb-titanium-gray-/p/304245',
         inStock: true,
         deliveryDays: 3,
       },
