@@ -80,7 +80,7 @@ export const mockProducts: Product[] = [
         price: 58990,
         originalPrice: 79900,
         url: 'https://www.reliancedigital.in/product/apple-iphone-15-128gb-black-lmiqm4-7533780',
-        inStock: false,
+        inStock: true,
         deliveryDays: 5,
       },
     ],

@@ -21,6 +21,24 @@ interface MigrationResult {
 export async function GET() {
   try {
     await dbConnect();
+
+    // Pre-migration cleanup of duplicates
+    const allSources = await ProductSource.find({});
+    const groups: Record<string, string[]> = {};
+    for (const src of allSources) {
+      const key = `${src.productId}_${src.platform}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(src._id.toString());
+    }
+
+    for (const [key, ids] of Object.entries(groups)) {
+      if (ids.length > 1) {
+        // Keep the first one, delete the rest
+        const toDelete = ids.slice(1);
+        await ProductSource.deleteMany({ _id: { $in: toDelete } });
+        console.log(`Cleaned up duplicate source ${key}, deleted IDs:`, toDelete);
+      }
+    }
     
     const results: MigrationResult[] = [];
 

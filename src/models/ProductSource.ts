@@ -36,4 +36,6 @@ const ProductSourceSchema = new Schema<IProductSource>({
   failureReason: { type: String }
 });
 
+ProductSourceSchema.index({ productId: 1, platform: 1 }, { unique: true });
+
 export default mongoose.models.ProductSource || mongoose.model<IProductSource>('ProductSource', ProductSourceSchema);

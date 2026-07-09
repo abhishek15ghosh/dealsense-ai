@@ -29,8 +29,8 @@ export async function runPriceMonitoringEngine() {
     try {
       const productDoc = await Product.findOne({ customId: productId });
       
-      // Fetch active ProductSource records for this product
-      let sources = await ProductSource.find({ productId, active: true });
+      // Fetch ProductSource records for this product
+      let sources = await ProductSource.find({ productId });
       
       // Auto-seed default Amazon, Flipkart, Croma, and Reliance Digital mock ProductSource records if none exists
       if (sources.length === 0) {
