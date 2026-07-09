@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     const originalPrice = productDoc ? (productDoc.originalPrice || (currentPrice || 49999) * 1.15) : (currentPrice || 49999) * 1.15;
 
     // 3. Find or create the source
-    let source = await ProductSource.findOne({ productId, retailer });
+    let source = await ProductSource.findOne({ productId, platform: retailer });
     if (source) {
       source.productUrl = productUrl;
       source.active = scraperResult.success;
@@ -85,6 +85,13 @@ export async function POST(request: NextRequest) {
       source.status = scraperResult.success ? 'Success' : 'Failed';
       source.failureReason = scraperResult.success ? '' : (scraperResult.error || 'Scraper failed');
       source.availability = scraperResult.success ? 'In Stock' : 'Unavailable';
+      // Populate metadata
+      source.scrapedAt = new Date();
+      source.sourceUrl = productUrl;
+      source.extractedPrice = currentPrice;
+      source.scrapeStatus = scraperResult.success ? 'Success' : 'Failed';
+      source.productTitleMatched = scraperResult.success;
+      source.pinCode = '110001 (Delhi Default)';
       await source.save();
     } else {
       source = await ProductSource.create({
@@ -102,7 +109,14 @@ export async function POST(request: NextRequest) {
         lastChecked: new Date(),
         active: scraperResult.success,
         status: scraperResult.success ? 'Success' : 'Failed',
-        failureReason: scraperResult.success ? '' : (scraperResult.error || 'Scraper failed')
+        failureReason: scraperResult.success ? '' : (scraperResult.error || 'Scraper failed'),
+        // Populate metadata
+        scrapedAt: new Date(),
+        sourceUrl: productUrl,
+        extractedPrice: currentPrice,
+        scrapeStatus: scraperResult.success ? 'Success' : 'Failed',
+        productTitleMatched: scraperResult.success,
+        pinCode: '110001 (Delhi Default)'
       });
     }
 

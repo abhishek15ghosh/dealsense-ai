@@ -16,6 +16,12 @@ export interface IProductSource extends Document {
   active?: boolean;
   status?: 'Success' | 'Failed';
   failureReason?: string;
+  scrapedAt?: Date;
+  sourceUrl?: string;
+  extractedPrice?: number;
+  scrapeStatus?: string;
+  productTitleMatched?: boolean;
+  pinCode?: string;
 }
 
 const ProductSourceSchema = new Schema<IProductSource>({
@@ -33,7 +39,13 @@ const ProductSourceSchema = new Schema<IProductSource>({
   lastChecked: { type: Date, required: true, default: Date.now },
   active: { type: Boolean, default: true },
   status: { type: String, enum: ['Success', 'Failed'], default: 'Success' },
-  failureReason: { type: String }
+  failureReason: { type: String },
+  scrapedAt: { type: Date },
+  sourceUrl: { type: String },
+  extractedPrice: { type: Number },
+  scrapeStatus: { type: String },
+  productTitleMatched: { type: Boolean },
+  pinCode: { type: String }
 });
 
 ProductSourceSchema.index({ productId: 1, platform: 1 }, { unique: true });

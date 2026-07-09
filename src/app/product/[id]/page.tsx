@@ -31,6 +31,12 @@ interface ProductPrice {
   deliveryDays: number;
   status?: string;
   lastChecked?: string;
+  scrapedAt?: string;
+  sourceUrl?: string;
+  extractedPrice?: number;
+  scrapeStatus?: string;
+  productTitleMatched?: boolean;
+  pinCode?: string;
 }
 
 interface ProductPriceHistory {
@@ -86,6 +92,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
 
   const [product, setProduct] = useState<ProductType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedStore, setExpandedStore] = useState<string | null>(null);
 
   // Price Alert Form State
   const [targetPrice, setTargetPrice] = useState<string>('');
@@ -612,72 +619,126 @@ export default function ProductDetailsPage({ params }: PageProps) {
               <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                 {product.prices.map((storePrice: ProductPrice) => {
                   const isBest = storePrice.storeName === bestDealStore;
+                  const isExpanded = expandedStore === storePrice.storeName;
                   return (
-                    <tr key={storePrice.storeName} className={`hover:bg-slate-50 transition duration-150 ${isBest ? 'bg-blue-50/20' : ''}`}>
-                      <td className="py-4 font-bold flex items-center space-x-2">
-                        <span className={`w-2.5 h-2.5 rounded-full inline-block ${
-                          storePrice.storeName === 'Amazon' ? 'bg-[#FF9900]' :
-                          storePrice.storeName === 'Flipkart' ? 'bg-[#2874F0]' :
-                          storePrice.storeName === 'Croma' ? 'bg-[#008080]' :
-                          storePrice.storeName === 'Reliance Digital' ? 'bg-[#E4252A]' :
-                          'bg-[#3b82f6]'
-                        }`} />
-                        <span>{storePrice.storeName}</span>
-                        {isBest && isBestPriceAvailable && isValidSourceUrl(storePrice.url) && storePrice.status !== 'Failed' && (
-                          <span className="inline-block px-1.5 py-0.5 bg-blue-600 text-white rounded text-[8px] font-black uppercase tracking-wider">
-                            Best Deal
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-4 text-right font-black text-slate-800">
-                        {refreshing ? (
-                          <span className="text-slate-400 animate-pulse text-[11px]">Updating...</span>
-                        ) : (storePrice.status === 'Failed' || !isValidSourceUrl(storePrice.url)) ? (
-                          <span className="text-slate-400 font-medium italic text-[11px]">Price unavailable</span>
-                        ) : (
-                          `₹${storePrice.price.toLocaleString('en-IN')}`
-                        )}
-                      </td>
-                      <td className="py-4 text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                          (storePrice.status === 'Failed' || !isValidSourceUrl(storePrice.url))
-                            ? 'bg-slate-50 text-slate-500 border border-slate-200/50'
-                            : storePrice.inStock
-                              ? 'bg-green-50 text-green-700 border border-green-100'
-                              : 'bg-red-50 text-red-700 border border-red-100'
-                        }`}>
-                          {(storePrice.status === 'Failed' || !isValidSourceUrl(storePrice.url)) ? 'N/A' : (storePrice.inStock ? 'In Stock' : 'Out of Stock')}
-                        </span>
-                      </td>
-                      <td className="py-4 text-center text-slate-500 text-[10px]">
-                        {storePrice.lastChecked
-                          ? new Date(storePrice.lastChecked).toLocaleString('en-IN', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              month: 'short',
-                              day: 'numeric'
-                            })
-                          : 'Never'}
-                      </td>
-                      <td className="py-4 text-center text-slate-400">
-                        {(storePrice.status === 'Failed' || !isValidSourceUrl(storePrice.url)) ? '--' : (storePrice.inStock ? `${storePrice.deliveryDays} Day Delivery` : '--')}
-                      </td>
-                      <td className="py-4 text-right">
-                        {isValidSourceUrl(storePrice.url) && storePrice.status !== 'Failed' ? (
-                          <a
-                            href={storePrice.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-700 font-bold"
+                    <React.Fragment key={storePrice.storeName}>
+                      <tr className={`hover:bg-slate-50 transition duration-150 ${isBest ? 'bg-blue-50/20' : ''}`}>
+                        <td className="py-4 font-bold flex items-center space-x-2">
+                          <span className={`w-2.5 h-2.5 rounded-full inline-block ${
+                            storePrice.storeName === 'Amazon' ? 'bg-[#FF9900]' :
+                            storePrice.storeName === 'Flipkart' ? 'bg-[#2874F0]' :
+                            storePrice.storeName === 'Croma' ? 'bg-[#008080]' :
+                            storePrice.storeName === 'Reliance Digital' ? 'bg-[#E4252A]' :
+                            'bg-[#3b82f6]'
+                          }`} />
+                          <span>{storePrice.storeName}</span>
+                          {isBest && isBestPriceAvailable && isValidSourceUrl(storePrice.url) && storePrice.status !== 'Failed' && (
+                            <span className="inline-block px-1.5 py-0.5 bg-blue-600 text-white rounded text-[8px] font-black uppercase tracking-wider">
+                              Best Deal
+                            </span>
+                          )}
+                          <span 
+                            onClick={() => setExpandedStore(isExpanded ? null : storePrice.storeName)}
+                            className="cursor-pointer select-none inline-flex items-center px-1.5 py-0.5 text-[8px] bg-slate-100 hover:bg-slate-200 text-slate-500 rounded font-black border border-slate-200 active:scale-95 transition"
                           >
-                            <span>Visit Store</span>
-                            <ExternalLink size={12} />
-                          </a>
-                        ) : (
-                          <span className="text-slate-400 italic text-[11px]">Unavailable</span>
-                        )}
-                      </td>
-                    </tr>
+                            {isExpanded ? 'Hide Info' : 'Live Info'}
+                          </span>
+                        </td>
+                        <td className="py-4 text-right font-black text-slate-800">
+                          {refreshing ? (
+                            <span className="text-slate-400 animate-pulse text-[11px]">Updating...</span>
+                          ) : (storePrice.status === 'Failed' || !isValidSourceUrl(storePrice.url)) ? (
+                            <span className="text-slate-400 font-medium italic text-[11px]">Price unavailable</span>
+                          ) : (
+                            `₹${storePrice.price.toLocaleString('en-IN')}`
+                          )}
+                        </td>
+                        <td className="py-4 text-center">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                            (storePrice.status === 'Failed' || !isValidSourceUrl(storePrice.url))
+                              ? 'bg-slate-50 text-slate-500 border border-slate-200/50'
+                              : storePrice.inStock
+                                ? 'bg-green-50 text-green-700 border border-green-100'
+                                : 'bg-red-50 text-red-700 border border-red-100'
+                          }`}>
+                            {(storePrice.status === 'Failed' || !isValidSourceUrl(storePrice.url)) ? 'N/A' : (storePrice.inStock ? 'In Stock' : 'Out of Stock')}
+                          </span>
+                        </td>
+                        <td className="py-4 text-center text-slate-500 text-[10px]">
+                          {storePrice.lastChecked
+                            ? new Date(storePrice.lastChecked).toLocaleString('en-IN', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                month: 'short',
+                                day: 'numeric'
+                              })
+                            : 'Never'}
+                        </td>
+                        <td className="py-4 text-center text-slate-400">
+                          {(storePrice.status === 'Failed' || !isValidSourceUrl(storePrice.url)) ? '--' : (storePrice.inStock ? `${storePrice.deliveryDays} Day Delivery` : '--')}
+                        </td>
+                        <td className="py-4 text-right">
+                          {isValidSourceUrl(storePrice.url) && storePrice.status !== 'Failed' ? (
+                            <a
+                              href={storePrice.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-700 font-bold"
+                            >
+                              <span>Visit Store</span>
+                              <ExternalLink size={12} />
+                            </a>
+                          ) : (
+                            <span className="text-slate-400 italic text-[11px]">Unavailable</span>
+                          )}
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="bg-slate-50/50">
+                          <td colSpan={6} className="px-6 py-4 border-t border-b border-slate-100 text-[11px] text-slate-500 font-medium">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-1">
+                              <div>
+                                <span className="block text-[9px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Scrape Status</span>
+                                <span className={`font-bold inline-flex items-center space-x-1 ${storePrice.status === 'Success' ? 'text-green-600' : 'text-red-500'}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full inline-block ${storePrice.status === 'Success' ? 'bg-green-600' : 'bg-red-500'}`} />
+                                  <span>{storePrice.status === 'Success' ? 'Verified (Success)' : 'Failed (Unverified)'}</span>
+                                </span>
+                              </div>
+                              <div>
+                                <span className="block text-[9px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Extracted Price</span>
+                                <span className="font-bold text-slate-800">
+                                  {storePrice.price && storePrice.price > 0 ? `₹${storePrice.price.toLocaleString('en-IN')}` : 'N/A'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="block text-[9px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Title Verification</span>
+                                <span className="font-bold text-slate-700">
+                                  {storePrice.productTitleMatched ? 'Match Confirmed' : 'Mismatch / Incomplete'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="block text-[9px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Location/PIN Used</span>
+                                <span className="font-bold text-slate-700">{storePrice.pinCode || '110001 (Default)'}</span>
+                              </div>
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-slate-200/50 flex flex-col space-y-1.5 text-[10px] text-slate-500">
+                              <div>
+                                <span className="text-slate-400 font-bold uppercase tracking-wider mr-1.5 text-[9px]">Scraped At:</span>
+                                <span className="text-slate-600 font-bold">
+                                  {storePrice.scrapedAt ? new Date(storePrice.scrapedAt).toLocaleString('en-IN') : 'Never'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-slate-400 font-bold uppercase tracking-wider mr-1.5 text-[9px]">Source URL:</span>
+                                <a href={storePrice.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-bold break-all">
+                                  {storePrice.url}
+                                </a>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>

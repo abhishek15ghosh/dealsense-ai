@@ -97,6 +97,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Update Database
+      // Populate metadata
+      source.scrapedAt = new Date();
+      source.sourceUrl = source.productUrl;
+      source.extractedPrice = scraperResult.price > 0 ? scraperResult.price : undefined;
+      source.scrapeStatus = finalStatus;
+      source.productTitleMatched = (productMatch === 'Match');
+      source.pinCode = '110001 (Delhi Default)';
+
       if (finalStatus === 'Verified') {
         source.status = 'Success';
         source.active = true;

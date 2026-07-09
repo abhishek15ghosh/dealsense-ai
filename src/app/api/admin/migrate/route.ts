@@ -97,6 +97,14 @@ export async function GET() {
       ]
     });
 
+    // Purge unverified PriceHistory records
+    await PriceHistory.deleteMany({
+      $or: [
+        { price: { $lte: 0 } },
+        { price: null }
+      ]
+    });
+
     // Delete PriceHistory and Alert logs for products that don't have any verified sources now
     const allProducts = await Product.find({});
     for (const prod of allProducts) {

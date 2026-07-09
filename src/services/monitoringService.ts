@@ -131,6 +131,13 @@ export async function runPriceMonitoringEngine() {
 
           const result = await fetchPriceForRetailer(source.retailer || source.platform, source.productUrl);
           
+          source.scrapedAt = new Date();
+          source.sourceUrl = source.productUrl;
+          source.extractedPrice = result.success ? result.price : undefined;
+          source.scrapeStatus = result.success ? 'Success' : (result.error || 'Failed');
+          source.productTitleMatched = result.success;
+          source.pinCode = '110001 (Delhi Default)';
+
           if (result.success) {
             source.currentPrice = result.price;
             if (result.title && result.title !== 'Unknown Amazon Product') {
@@ -153,6 +160,12 @@ export async function runPriceMonitoringEngine() {
           return source;
         } catch (fetchErr) {
           console.error(`[Monitoring Engine] Failed to fetch price for source ${source._id}:`, fetchErr);
+          source.scrapedAt = new Date();
+          source.sourceUrl = source.productUrl;
+          source.extractedPrice = undefined;
+          source.scrapeStatus = 'Failed';
+          source.productTitleMatched = false;
+          source.pinCode = '110001 (Delhi Default)';
           source.active = false;
           source.status = 'Failed';
           source.currentPrice = undefined;

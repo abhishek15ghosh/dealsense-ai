@@ -69,7 +69,7 @@ export const mockProducts: Product[] = [
       },
       {
         storeName: 'Croma',
-        price: 61900,
+        price: 56990,
         originalPrice: 79900,
         url: 'https://www.croma.com/apple-iphone-15-128gb-black-/p/300652',
         inStock: true,

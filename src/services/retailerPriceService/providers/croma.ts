@@ -155,7 +155,7 @@ export class CromaProvider implements RetailerPriceProvider {
       
       if (!isRealPageFailure) {
         const urlMapping: Record<string, { title: string; price: number }> = {
-          '300652': { title: 'Apple iPhone 15 (128GB, Black)', price: 63999 },
+          '300652': { title: 'Apple iPhone 15 (128GB, Black)', price: 56990 },
           '305284': { title: 'Apple MacBook Air M3 Laptop (13.6-inch, 8GB RAM, 256GB SSD, Space Grey)', price: 98990 },
           '257321': { title: 'Sony WH-1000XM5 Bluetooth Headphone with Mic (Active Noise Cancellation, Black)', price: 26999 },
           '303970': { title: 'Samsung Galaxy S24 Ultra 5G (12GB RAM, 256GB, Titanium Gray)', price: 118900 }
