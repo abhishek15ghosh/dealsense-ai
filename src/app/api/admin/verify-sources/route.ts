@@ -4,7 +4,7 @@ import ProductSource from '@/models/ProductSource';
 import Product from '@/models/Product';
 import { getAuthUser } from '@/lib/auth';
 import { fetchPriceForRetailer } from '@/services/retailerPriceService';
-import { getVerifiedBestDeal } from '@/lib/priceUtils';
+import { getVerifiedBestDeal, verifyUrlMatchesProduct } from '@/lib/priceUtils';
 
 function matchTitle(scrapedTitle: string, expectedName: string): boolean {
   if (!scrapedTitle) return false;
@@ -43,8 +43,21 @@ export async function POST(request: NextRequest) {
       const parentProduct = products.find(p => p.customId === source.productId);
       const expectedName = parentProduct ? parentProduct.name : source.title;
 
-      // Execute live scrape
-      const scraperResult = await fetchPriceForRetailer(source.retailer || source.platform, source.productUrl);
+      // Execute live scrape after verifying URL matching product
+      const isUrlMatch = verifyUrlMatchesProduct(source.productUrl, source.productId, expectedName);
+      
+      let scraperResult;
+      if (!isUrlMatch) {
+        scraperResult = {
+          success: false,
+          price: 0,
+          title: 'URL Mismatch Page',
+          error: 'URL model keywords mismatch',
+          timestamp: new Date()
+        };
+      } else {
+        scraperResult = await fetchPriceForRetailer(source.retailer || source.platform, source.productUrl);
+      }
       
       let httpResult = '200 OK';
       let productMatch = 'Match';
@@ -53,7 +66,11 @@ export async function POST(request: NextRequest) {
       let reason = '';
 
       if (!scraperResult.success) {
-        if (scraperResult.error === 'product unavailable') {
+        if (scraperResult.error === 'URL model keywords mismatch') {
+          httpResult = 'URL Mismatch';
+          finalStatus = 'Failed';
+          reason = 'URL model keywords mismatch';
+        } else if (scraperResult.error === 'product unavailable') {
           httpResult = '404 / Error Page';
           finalStatus = 'Failed';
           reason = 'Retailer page not found or returned error';
@@ -132,7 +149,10 @@ export async function POST(request: NextRequest) {
         productMatch,
         priceResult,
         status: finalStatus,
-        reason
+        reason,
+        extractedTitle: scraperResult.title || 'N/A',
+        expectedTitle: expectedName,
+        extractedPrice: scraperResult.price || 0
       });
     }
 

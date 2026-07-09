@@ -7,7 +7,7 @@ import Alert from '@/models/Alert';
 import Notification from '@/models/Notification';
 import { fetchPriceForRetailer } from '@/services/retailerPriceService';
 import { mockProducts } from '@/data/mockProducts';
-import { isValidSourceUrl, getVerifiedBestDeal } from '@/lib/priceUtils';
+import { isValidSourceUrl, getVerifiedBestDeal, verifyUrlMatchesProduct } from '@/lib/priceUtils';
 
 
 export async function runPriceMonitoringEngine() {
@@ -124,6 +124,24 @@ export async function runPriceMonitoringEngine() {
             source.status = 'Failed';
             source.currentPrice = undefined;
             source.availability = 'Unavailable';
+            source.lastChecked = new Date();
+            await source.save();
+            return source;
+          }
+
+          const parentName = productDoc ? productDoc.name : source.title;
+          if (!verifyUrlMatchesProduct(source.productUrl, source.productId, parentName)) {
+            source.active = false;
+            source.status = 'Failed';
+            source.currentPrice = undefined;
+            source.availability = 'Unavailable';
+            source.failureReason = 'URL model keywords mismatch';
+            source.scrapedAt = new Date();
+            source.sourceUrl = source.productUrl;
+            source.extractedPrice = undefined;
+            source.scrapeStatus = 'Failed';
+            source.productTitleMatched = false;
+            source.pinCode = '110001 (Delhi Default)';
             source.lastChecked = new Date();
             await source.save();
             return source;

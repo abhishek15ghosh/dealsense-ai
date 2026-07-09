@@ -49,6 +49,28 @@ export function isValidSourceUrl(url?: string): boolean {
   return lowerUrl.startsWith('http');
 }
 
+export function verifyUrlMatchesProduct(url: string, customId: string, expectedName: string): boolean {
+  if (!url) return false;
+  const cleanUrl = url.toLowerCase();
+  
+  if (cleanUrl.includes('mock-') || cleanUrl.includes('/mock')) {
+    return cleanUrl.includes(customId.toLowerCase());
+  }
+
+  const expectedKws = expectedName.toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/-/g, ' ')
+    .split(/\s+/)
+    .map(w => w.trim())
+    .filter(w => w.length > 1 && !['wireless', 'headphones', 'active', 'noise', 'cancelling', 'canceling', 'headset', 'earbuds', 'laptop', 'tablet', 'phone', 'smartphone', 'smart', 'with', 'and', 'black', 'white', 'titanium', 'gray', 'grey', 'gold', 'silver', 'blue'].includes(w));
+
+  const idKws = customId.toLowerCase().split('-');
+  const allKws = Array.from(new Set([...expectedKws, ...idKws])).filter(w => w.length > 1);
+
+  const urlPath = cleanUrl.split('?')[0];
+  return allKws.some(kw => urlPath.includes(kw));
+}
+
 export interface SimpleProductSource {
   storeName?: string;
   platform?: string;

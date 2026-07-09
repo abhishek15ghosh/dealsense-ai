@@ -64,8 +64,23 @@ export async function POST(request: NextRequest) {
     // 1. Fetch details from parent product
     const productDoc = await Product.findOne({ customId: productId });
     
-    // 2. Fetch latest price from the provider to validate and get current details
-    const scraperResult = await fetchPriceForRetailer(retailer, productUrl);
+    // 2. Fetch latest price from the provider to validate and get current details after verifying URL matching product
+    const { verifyUrlMatchesProduct } = await import('@/lib/priceUtils');
+    const parentName = productDoc ? productDoc.name : productId.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const isUrlMatch = verifyUrlMatchesProduct(productUrl, productId, parentName);
+
+    let scraperResult;
+    if (!isUrlMatch) {
+      scraperResult = {
+        success: false,
+        price: 0,
+        title: 'URL Mismatch Page',
+        error: 'URL model keywords mismatch',
+        timestamp: new Date()
+      };
+    } else {
+      scraperResult = await fetchPriceForRetailer(retailer, productUrl);
+    }
     
     const title = scraperResult.success && scraperResult.title
       ? scraperResult.title

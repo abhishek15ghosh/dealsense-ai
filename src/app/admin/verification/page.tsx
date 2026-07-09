@@ -386,6 +386,9 @@ export default function AdminVerificationPage() {
                     <th className="py-3 px-4">HTTP Result</th>
                     <th className="py-3 px-4">Match</th>
                     <th className="py-3 px-4">Price Result</th>
+                    <th className="py-3 px-4">Expected Title</th>
+                    <th className="py-3 px-4">Extracted Title</th>
+                    <th className="py-3 px-4">Extracted Price</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4 rounded-r-xl">Reason</th>
                   </tr>
@@ -400,7 +403,7 @@ export default function AdminVerificationPage() {
                           href={item.url} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline line-clamp-1 max-w-[150px]"
+                          className="text-blue-600 hover:underline line-clamp-1 max-w-[120px]"
                         >
                           {item.url}
                         </a>
@@ -431,6 +434,11 @@ export default function AdminVerificationPage() {
                         }`}>
                           {item.priceResult}
                         </span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-500 max-w-[120px] truncate" title={item.expectedTitle}>{item.expectedTitle || '-'}</td>
+                      <td className="py-3 px-4 text-slate-500 max-w-[120px] truncate" title={item.extractedTitle}>{item.extractedTitle || '-'}</td>
+                      <td className="py-3 px-4 font-bold text-slate-700">
+                        {item.extractedPrice && item.extractedPrice > 0 ? `₹${item.extractedPrice.toLocaleString('en-IN')}` : 'N/A'}
                       </td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-1 rounded-xl text-[10px] font-extrabold uppercase border ${
