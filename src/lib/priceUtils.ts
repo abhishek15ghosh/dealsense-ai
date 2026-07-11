@@ -57,6 +57,10 @@ export function verifyUrlMatchesProduct(url: string, customId: string, expectedN
     return false;
   }
 
+  if (cleanUrl.includes('amazon.in') || cleanUrl.includes('amazon.com')) {
+    return cleanUrl.includes('/dp/') || cleanUrl.includes('/gp/');
+  }
+
   const expectedKws = expectedName.toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/-/g, ' ')
