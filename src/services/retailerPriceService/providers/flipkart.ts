@@ -153,7 +153,7 @@ export class FlipkartProvider implements RetailerPriceProvider {
       if (!isRealPageFailure) {
         const urlMapping: Record<string, { title: string; price: number }> = {
           'itm6ac6485515ae4': { title: 'Apple iPhone 15 (Black, 128 GB)', price: 65999 },
-          'itmbb8c09a80e118': { title: 'Apple MacBook Air M3 (13.6-inch, 8GB, 256GB SSD) - Midnight', price: 102990 },
+          'itme6966810c926a': { title: 'Apple MacBook Air M3 (13.6-inch, 8GB, 256GB SSD) - Starlight', price: 102990 },
           'itm9ee097bc0ae76': { title: 'Sony WH-1000XM5 Bluetooth Headset with Active Noise Cancellation', price: 23990 },
           'itm9ae0e397e0b0d': { title: 'SAMSUNG Galaxy S24 Ultra (Titanium Gray, 256 GB)', price: 121999 },
           'itm4464454f95a2e': { title: 'OnePlus 12 (Silky Black, 512 GB)', price: 69999 },

@@ -127,7 +127,7 @@ export const mockProducts: Product[] = [
         storeName: 'Flipkart',
         price: 109900,
         originalPrice: 114900,
-        url: 'https://www.flipkart.com/apple-macbook-air-m3-8-gb-256-gb-ssd-macos-sonoma-mrym3hn-a/p/itmbb8c09a80e118',
+        url: 'https://www.flipkart.com/apple-macbook-air-m3-8-gb-256-gb-ssd-macos-sonoma-mryr3hn-a-starlight/p/itme6966810c926a',
         inStock: true,
         deliveryDays: 3,
       },
