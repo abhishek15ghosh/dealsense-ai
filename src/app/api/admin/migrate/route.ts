@@ -65,6 +65,11 @@ export async function GET() {
           platform: priceObj.storeName
         };
 
+        if (!priceObj.url) {
+          await ProductSource.deleteOne(query);
+          continue;
+        }
+
         const isValid = isValidSourceUrl(priceObj.url);
         const updateDoc = {
           $set: {

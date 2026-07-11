@@ -129,6 +129,14 @@ export async function ingestProductSource(listing: UnifiedProduct): Promise<void
 
   // 3. Find or create the ProductSource document
   const source = await ProductSource.findOne({ productId: customId, platform: listing.platform });
+  
+  if (!listing.productUrl) {
+    if (source) {
+      await ProductSource.deleteOne({ _id: source._id });
+    }
+    return;
+  }
+
   const isValid = isValidSourceUrl(listing.productUrl);
   if (source) {
     source.currentPrice = isValid ? listing.currentPrice : undefined;
