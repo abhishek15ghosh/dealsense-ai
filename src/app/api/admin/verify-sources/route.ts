@@ -11,6 +11,18 @@ function matchTitle(scrapedTitle: string, expectedName: string): boolean {
   const cleanTitle = scrapedTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
   const cleanExpected = expectedName.toLowerCase();
   
+  // Custom synonym groups/checks
+  if (cleanExpected.includes('ipad pro') && cleanExpected.includes('m4')) {
+    if (cleanTitle.includes('ipadpro') && (cleanTitle.includes('m4') || cleanTitle.includes('2024') || cleanTitle.includes('5thgen'))) {
+      return true;
+    }
+  }
+  if (cleanExpected.includes('dell xps') && cleanExpected.includes('ultra 7')) {
+    if (cleanTitle.includes('dellxps') && (cleanTitle.includes('ultra7') || cleanTitle.includes('intelcore') || cleanTitle.includes('ultra'))) {
+      return true;
+    }
+  }
+
   const getKeywords = (str: string) => {
     return str
       .replace(/-/g, ' ')
