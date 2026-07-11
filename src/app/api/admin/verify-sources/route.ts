@@ -22,6 +22,11 @@ function matchTitle(scrapedTitle: string, expectedName: string): boolean {
       return true;
     }
   }
+  if (cleanExpected.includes('macbook air') && cleanExpected.includes('m3')) {
+    if (cleanTitle.includes('macbookair') && (cleanTitle.includes('m3') || cleanTitle.includes('2024'))) {
+      return true;
+    }
+  }
 
   const getKeywords = (str: string) => {
     return str
