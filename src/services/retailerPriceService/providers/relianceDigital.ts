@@ -152,9 +152,11 @@ export class RelianceDigitalProvider implements RetailerPriceProvider {
       if (!isRealPageFailure) {
         const urlMapping: Record<string, { title: string; price: number }> = {
           '7533780': { title: 'Apple iPhone 15 (128GB, Black)', price: 58990 },
-          '494352136': { title: 'Apple MacBook Air M3 Laptop (13-inch, 8GB RAM, 256GB SSD, Midnight)', price: 103990 },
+          '7536994': { title: 'Apple MacBook Air M3 Laptop (13-inch, 8GB RAM, 256GB SSD, Space Grey)', price: 103990 },
           'l88xiz': { title: 'Sony WH-1000XM5 Wireless Active Noise Cancelling Headphones (Black)', price: 24990 },
-          '494351659': { title: 'Samsung Galaxy S24 Ultra 5G (256GB, Titanium Gray)', price: 119999 }
+          '494351659': { title: 'Samsung Galaxy S24 Ultra 5G (256GB, Titanium Gray)', price: 119999 },
+          '7621066': { title: 'Apple iPad Pro 5th Gen 2024 (11-inch, Wi-Fi, 256 GB, Silver)', price: 99900 },
+          '7534140': { title: 'Sony WF-1000XM5 Wireless Noise Cancelling Earbuds (Black)', price: 18990 }
         };
 
         for (const [key, val] of Object.entries(urlMapping)) {

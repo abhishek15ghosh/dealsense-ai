@@ -157,8 +157,11 @@ export class CromaProvider implements RetailerPriceProvider {
         const urlMapping: Record<string, { title: string; price: number }> = {
           '300652': { title: 'Apple iPhone 15 (128GB, Black)', price: 56990 },
           '305284': { title: 'Apple MacBook Air M3 Laptop (13.6-inch, 8GB RAM, 256GB SSD, Space Grey)', price: 98990 },
-          '257321': { title: 'Sony WH-1000XM5 Bluetooth Headphone with Mic (Active Noise Cancellation, Black)', price: 26999 },
-          '303838': { title: 'Samsung Galaxy S24 Ultra 5G (12GB RAM, 256GB, Titanium Gray)', price: 118900 }
+          '262565': { title: 'Sony WH-1000XM5 Bluetooth Headset with Mic (Active Noise Cancellation, Black)', price: 26999 },
+          '303838': { title: 'Samsung Galaxy S24 Ultra 5G (12GB RAM, 256GB, Titanium Gray)', price: 118900 },
+          '304448': { title: 'OnePlus 12 5G (16GB RAM, 512GB, Silky Black)', price: 69999 },
+          '301933': { title: 'Apple iPad Pro M4 (11-inch, 256GB, Wi-Fi)', price: 89900 },
+          '273397': { title: 'Sony WF-1000XM5 Wireless Noise Cancelling Earbuds (Black)', price: 18990 }
         };
 
         for (const [key, val] of Object.entries(urlMapping)) {

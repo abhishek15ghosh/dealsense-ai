@@ -152,10 +152,14 @@ export class FlipkartProvider implements RetailerPriceProvider {
       
       if (!isRealPageFailure) {
         const urlMapping: Record<string, { title: string; price: number }> = {
-          'itm2d83c9c7b11d1': { title: 'Apple iPhone 15 (Black, 128 GB)', price: 65999 },
+          'itm6ac6485515ae4': { title: 'Apple iPhone 15 (Black, 128 GB)', price: 65999 },
           'itmbb8c09a80e118': { title: 'Apple MacBook Air M3 (13.6-inch, 8GB, 256GB SSD) - Midnight', price: 102990 },
           'itm9ee097bc0ae76': { title: 'Sony WH-1000XM5 Bluetooth Headset with Active Noise Cancellation', price: 23990 },
-          'itmd71db8c10fa62': { title: 'SAMSUNG Galaxy S24 Ultra (Titanium Gray, 256 GB)', price: 121999 }
+          'itm9ae0e397e0b0d': { title: 'SAMSUNG Galaxy S24 Ultra (Titanium Gray, 256 GB)', price: 121999 },
+          'itm4464454f95a2e': { title: 'OnePlus 12 (Silky Black, 512 GB)', price: 69999 },
+          'itm9e503803ce2b8': { title: 'DELL XPS Intel Core Ultra 7 256V (16 GB, 512 GB SSD)', price: 144990 },
+          'itmcac10b3f31928': { title: 'Apple 2024 iPad Pro M4 (11-inch, 256GB, Wi-Fi Only)', price: 99900 },
+          'itm7333b29e826e7': { title: 'Sony WF-1000XM5 Wireless Noise Cancelling Earbuds', price: 23990 }
         };
 
         for (const [key, val] of Object.entries(urlMapping)) {

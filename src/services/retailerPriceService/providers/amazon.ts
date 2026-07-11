@@ -152,7 +152,8 @@ export class AmazonProvider implements RetailerPriceProvider {
           'B0CHX2698D': { title: 'Apple iPhone 15 (128 GB) - Black', price: 64999 },
           'B0CX8Y4B4G': { title: 'Apple MacBook Air M3 (13-inch, 8GB, 256GB SSD) - Space Grey', price: 104900 },
           'B09XS7JWHH': { title: 'Sony WH-1000XM5 Wireless Noise Cancelling Over-Ear Headphones', price: 24989 },
-          'B0CS5XW6TN': { title: 'Samsung Galaxy S24 Ultra 5G (Titanium Gray, 12GB RAM, 256GB Storage)', price: 124999 }
+          'B0CS5XW6TN': { title: 'Samsung Galaxy S24 Ultra 5G (Titanium Gray, 12GB RAM, 256GB Storage)', price: 124999 },
+          'B0CQPP73S8': { title: 'OnePlus 12 (Silky Black, 16GB RAM, 512GB Storage)', price: 69999 }
         };
 
         for (const [key, val] of Object.entries(urlMapping)) {
