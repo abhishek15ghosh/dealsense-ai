@@ -33,7 +33,7 @@ function matchTitle(scrapedTitle: string, expectedName: string): boolean {
       .replace(/-/g, ' ')
       .split(/\s+/)
       .map(w => w.trim().replace(/[^a-z0-9]/g, ''))
-      .filter(w => w.length > 1 && !['wireless', 'headphones', 'active', 'noise', 'cancelling', 'canceling', 'headset', 'earbuds', 'laptop', 'tablet', 'phone', 'smartphone', 'smart', 'with', 'and'].includes(w));
+      .filter(w => w.length > 1 && !['wireless', 'headphones', 'active', 'noise', 'cancelling', 'canceling', 'headset', 'earbuds', 'laptop', 'tablet', 'phone', 'smartphone', 'smart', 'with', 'and', 'ram', 'ssd', 'gb', 'tb', 'rom', 'storage', 'inch', 'model', 'generation', 'gen'].includes(w));
   };
 
   const expectedKws = getKeywords(cleanExpected);
