@@ -84,8 +84,12 @@ export class FlipkartProvider implements RetailerPriceProvider {
 
       const html = await res.text();
 
-      if (html.includes('Something went wrong') || html.includes('E002') || html.includes('error-page') || html.includes('Page Not Found')) {
+      if (html.includes('error-page') || html.includes('Page Not Found')) {
         throw new Error('product unavailable');
+      }
+
+      if (html.includes('Something went wrong') || html.includes('E002')) {
+        throw new Error('HTTP blocked');
       }
 
       // Check for captcha/reCAPTCHA blocking
