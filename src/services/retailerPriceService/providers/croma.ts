@@ -153,6 +153,8 @@ export class CromaProvider implements RetailerPriceProvider {
       const errMsg = err instanceof Error ? err.message : String(err);
       const isRealPageFailure = errMsg === 'product unavailable' || errMsg === 'invalid URL' || errMsg === 'redirect issue';
       
+      // Fallback mapping disabled to enforce live-scraped price proof only
+      /*
       if (!isRealPageFailure) {
         const urlMapping: Record<string, { title: string; price: number }> = {
           '300652': { title: 'Apple iPhone 15 (128GB, Black)', price: 56990 },
@@ -177,6 +179,7 @@ export class CromaProvider implements RetailerPriceProvider {
           }
         }
       }
+      */
 
       const cleanErrMsg = ['invalid URL', 'HTTP blocked', 'timeout', 'selector failed', 'captcha / bot block', 'product unavailable', 'price not found', 'redirect issue'].includes(errMsg)
         ? errMsg

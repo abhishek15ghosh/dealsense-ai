@@ -7,39 +7,96 @@ import { fetchPriceForRetailer } from '@/services/retailerPriceService';
 import { getVerifiedBestDeal, verifyUrlMatchesProduct } from '@/lib/priceUtils';
 
 function matchTitle(scrapedTitle: string, expectedName: string): boolean {
-  if (!scrapedTitle) return false;
-  const cleanTitle = scrapedTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const cleanExpected = expectedName.toLowerCase();
-  
-  // Custom synonym groups/checks
-  if (cleanExpected.includes('ipad pro') && cleanExpected.includes('m4')) {
-    if (cleanTitle.includes('ipadpro') && (cleanTitle.includes('m4') || cleanTitle.includes('2024') || cleanTitle.includes('5thgen'))) {
-      return true;
-    }
-  }
-  if (cleanExpected.includes('dell xps') && cleanExpected.includes('ultra 7')) {
-    if (cleanTitle.includes('dellxps') && (cleanTitle.includes('ultra7') || cleanTitle.includes('intelcore') || cleanTitle.includes('ultra'))) {
-      return true;
-    }
-  }
-  if (cleanExpected.includes('macbook air') && cleanExpected.includes('m3')) {
-    if (cleanTitle.includes('macbookair') && (cleanTitle.includes('m3') || cleanTitle.includes('2024'))) {
-      return true;
-    }
-  }
+  if (!scrapedTitle || !expectedName) return false;
 
-  const getKeywords = (str: string) => {
-    return str
+  const normalize = (str: string) => {
+    return str.toLowerCase()
       .replace(/-/g, ' ')
-      .split(/\s+/)
-      .map(w => w.trim().replace(/[^a-z0-9]/g, ''))
-      .filter(w => w.length > 1 && !['wireless', 'headphones', 'active', 'noise', 'cancelling', 'canceling', 'headset', 'earbuds', 'laptop', 'tablet', 'phone', 'smartphone', 'smart', 'with', 'and', 'ram', 'ssd', 'gb', 'tb', 'rom', 'storage', 'inch', 'model', 'generation', 'gen'].includes(w));
+      .replace(/\s+/g, ' ')
+      .trim();
   };
 
-  const expectedKws = getKeywords(cleanExpected);
-  if (expectedKws.length === 0) return true;
+  const normScraped = normalize(scrapedTitle);
+  const normExpected = normalize(expectedName);
+
+  // 1. Brand / Core Model Keywords Validation
+  const getBrandModelKeywords = (str: string) => {
+    return str.split(/\s+/)
+      .map(w => w.replace(/[^a-z0-9]/g, ''))
+      .filter(w => w.length > 1 && !['wireless', 'headphones', 'active', 'noise', 'cancelling', 'canceling', 'headset', 'earbuds', 'laptop', 'tablet', 'phone', 'smartphone', 'smart', 'with', 'and', 'ram', 'ssd', 'gb', 'tb', 'rom', 'storage', 'inch', 'model', 'generation', 'gen', 'only', 'pro', 'ultra', 'wifi', 'wi-fi', 'black', 'grey', 'silver', 'starlight', 'gray'].includes(w));
+  };
   
-  return expectedKws.every(kw => cleanTitle.includes(kw));
+  const expectedBrandModel = getBrandModelKeywords(normExpected);
+  const scrapedWords = normScraped.split(/\s+/).map(w => w.replace(/[^a-z0-9]/g, ''));
+  
+  for (const kw of expectedBrandModel) {
+    if (!scrapedWords.includes(kw)) {
+      return false; // Core brand/model keyword mismatch
+    }
+  }
+
+  // 2. Strict Variant Match (Capacity: RAM / Storage)
+  const getCapacitySpecs = (str: string) => {
+    const specs: string[] = [];
+    const matches = str.matchAll(/\b(\d+)\s*(gb|tb|rom|ram|ssd)\b/g);
+    for (const match of matches) {
+      specs.push(`${match[1]}${match[2].startsWith('t') ? 'tb' : 'gb'}`);
+    }
+    return Array.from(new Set(specs));
+  };
+
+  const expectedCapacities = getCapacitySpecs(normExpected);
+  const scrapedCapacities = getCapacitySpecs(normScraped);
+
+  for (const cap of expectedCapacities) {
+    if (!scrapedCapacities.includes(cap)) {
+      return false; // Mismatched RAM or storage variant
+    }
+  }
+
+  // 3. Strict Variant Match (Screen Size)
+  const getScreenSizes = (str: string) => {
+    const sizes: string[] = [];
+    const matches = str.matchAll(/\b(\d+(?:\.\d+)?)\s*(?:inch|inches|-inch|“|”|")\b/g);
+    for (const match of matches) {
+      sizes.push(match[1]);
+    }
+    return Array.from(new Set(sizes));
+  };
+
+  const expectedSizes = getScreenSizes(normExpected);
+  const scrapedSizes = getScreenSizes(normScraped);
+
+  for (const size of expectedSizes) {
+    const matchFound = scrapedSizes.some(s => {
+      const sNum = parseFloat(s);
+      const eNum = parseFloat(size);
+      return Math.abs(sNum - eNum) < 0.2;
+    });
+    if (!matchFound && expectedSizes.length > 0 && scrapedSizes.length > 0) {
+      return false; // Screen size mismatch
+    }
+  }
+
+  // 4. Model/Chip Specs Validation
+  const checkModelSpec = (spec: string, synonyms: string[] = []) => {
+    if (normExpected.includes(spec)) {
+      const foundInScraped = normScraped.includes(spec) || synonyms.some(syn => normScraped.includes(syn));
+      if (!foundInScraped) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  if (!checkModelSpec('m3')) return false;
+  if (!checkModelSpec('m4', ['2024', '5th gen', '5thgen'])) return false;
+  if (!checkModelSpec('s24')) return false;
+  if (!checkModelSpec('ultra')) return false;
+  if (!checkModelSpec('12')) return false; 
+  if (!checkModelSpec('xm5')) return false; 
+
+  return true;
 }
 
 export async function POST(request: NextRequest) {

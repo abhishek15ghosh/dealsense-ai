@@ -149,6 +149,8 @@ export class RelianceDigitalProvider implements RetailerPriceProvider {
       const errMsg = err instanceof Error ? err.message : String(err);
       const isRealPageFailure = errMsg === 'product unavailable' || errMsg === 'invalid URL' || errMsg === 'redirect issue';
       
+      // Fallback mapping disabled to enforce live-scraped price proof only
+      /*
       if (!isRealPageFailure) {
         const urlMapping: Record<string, { title: string; price: number }> = {
           '7533780': { title: 'Apple iPhone 15 (128GB, Black)', price: 58990 },
@@ -172,6 +174,7 @@ export class RelianceDigitalProvider implements RetailerPriceProvider {
           }
         }
       }
+      */
 
       const cleanErrMsg = ['invalid URL', 'HTTP blocked', 'timeout', 'selector failed', 'captcha / bot block', 'product unavailable', 'price not found', 'redirect issue'].includes(errMsg)
         ? errMsg

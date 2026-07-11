@@ -147,6 +147,8 @@ export class AmazonProvider implements RetailerPriceProvider {
       const errMsg = err instanceof Error ? err.message : String(err);
       const isRealPageFailure = errMsg === 'product unavailable' || errMsg === 'invalid URL' || errMsg === 'redirect issue';
       
+      // Fallback mapping disabled to enforce live-scraped price proof only
+      /*
       if (!isRealPageFailure) {
         const urlMapping: Record<string, { title: string; price: number }> = {
           'B0CHX2698D': { title: 'Apple iPhone 15 (128 GB) - Black', price: 64999 },
@@ -169,6 +171,7 @@ export class AmazonProvider implements RetailerPriceProvider {
           }
         }
       }
+      */
 
       const cleanErrMsg = ['invalid URL', 'HTTP blocked', 'timeout', 'selector failed', 'captcha / bot block', 'product unavailable', 'price not found', 'redirect issue'].includes(errMsg)
         ? errMsg
