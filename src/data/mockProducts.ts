@@ -63,7 +63,7 @@ export const mockProducts: Product[] = [
         storeName: 'Flipkart',
         price: 59400,
         originalPrice: 79900,
-        url: 'https://www.flipkart.com/apple-iphone-15-black-128-gb/p/itm2d83c9c7b11d1',
+        url: 'https://www.flipkart.com/apple-iphone-15-black-128-gb/p/itm6ac6485515ae4',
         inStock: true,
         deliveryDays: 2,
       },
@@ -143,7 +143,7 @@ export const mockProducts: Product[] = [
         storeName: 'Reliance Digital',
         price: 108900,
         originalPrice: 114900,
-        url: 'https://www.reliancedigital.in/apple-macbook-air-mryu3hn-a-m3-8-gb-256-gb-ssd-13-inch-retina-display-macos-sonoma-midnight/p/494352136',
+        url: 'https://www.reliancedigital.in/product/apple-mrx73hna-macbook-air-apple-m3-chip8gb256gb-ssdliquid-retina-3446-cm-136-inch-space-grey-ltgu1p-7536994',
         inStock: true,
         deliveryDays: 2,
       },
@@ -199,7 +199,7 @@ export const mockProducts: Product[] = [
         storeName: 'Croma',
         price: 26999,
         originalPrice: 34990,
-        url: 'https://www.croma.com/sony-wh-1000xm5-bluetooth-headphone-with-mic-auto-noise-cancellation-optimizer-over-ear-black-/p/257321',
+        url: 'https://www.croma.com/sony-wh-1000xm5-bluetooth-headset-with-mic-auto-noise-cancellation-optimizer-over-ear-black-/p/262565',
         inStock: true,
         deliveryDays: 2,
       },
@@ -255,7 +255,7 @@ export const mockProducts: Product[] = [
         storeName: 'Flipkart',
         price: 123999,
         originalPrice: 139999,
-        url: 'https://www.flipkart.com/samsung-galaxy-s24-ultra-5g-titanium-gray-256-gb/p/itmd71db8c10fa62',
+        url: 'https://www.flipkart.com/samsung-galaxy-s24-ultra-5g-titanium-gray-256-gb/p/itm9ae0e397e0b0d',
         inStock: true,
         deliveryDays: 2,
       },
@@ -308,16 +308,16 @@ export const mockProducts: Product[] = [
     bestDealPrice: 0,
     prices: [
       { storeName: 'Amazon', price: 99900, originalPrice: 99900, url: 'https://www.amazon.in/dp/mock-ipad-pro-m4', inStock: false, deliveryDays: 1 },
-      { storeName: 'Flipkart', price: 99900, originalPrice: 99900, url: 'https://www.flipkart.com/dp/mock-ipad-pro-m4', inStock: false, deliveryDays: 2 },
-      { storeName: 'Croma', price: 99900, originalPrice: 99900, url: 'https://www.croma.com/dp/mock-ipad-pro-m4', inStock: false, deliveryDays: 3 },
-      { storeName: 'Reliance Digital', price: 99900, originalPrice: 99900, url: 'https://www.reliancedigital.in/dp/mock-ipad-pro-m4', inStock: false, deliveryDays: 1 }
+      { storeName: 'Flipkart', price: 99900, originalPrice: 99900, url: 'https://www.flipkart.com/apple-2024-ipad-pro-m4-256-gb-rom-11-0-inch-wi-fi-only-space-black/p/itmcac10b3f31928', inStock: true, deliveryDays: 2 },
+      { storeName: 'Croma', price: 89900, originalPrice: 89900, url: 'https://www.croma.com/apple-ipad-pro-wi-fi-11-inch-256gb-space-black-2024-model-/p/301933', inStock: true, deliveryDays: 3 },
+      { storeName: 'Reliance Digital', price: 99900, originalPrice: 99900, url: 'https://www.reliancedigital.in/product/apple-ipad-pro-5th-gen-2024-2822-cm-11-inch-wi-fi-tablet-256-gb-silver-lvxv99-7621066', inStock: true, deliveryDays: 1 }
     ],
     priceHistory: [],
     aiRecommendation: {
-      decision: 'AVOID',
+      decision: 'BUY NOW',
       confidence: 90,
-      summary: 'No verified live dealer price is currently active.',
-      reasoning: ['All linked store channels currently return WAF challenge or invalid mock structures.']
+      summary: 'Verified live store pricing is active across prime channels.',
+      reasoning: ['Lowest verified live price is active on Croma at ₹89,900.']
     }
   },
   {
@@ -332,16 +332,16 @@ export const mockProducts: Product[] = [
     bestDealPrice: 0,
     prices: [
       { storeName: 'Amazon', price: 23990, originalPrice: 23990, url: 'https://www.amazon.in/dp/mock-sony-wf-1000xm5', inStock: false, deliveryDays: 1 },
-      { storeName: 'Flipkart', price: 23990, originalPrice: 23990, url: 'https://www.flipkart.com/dp/mock-sony-wf-1000xm5', inStock: false, deliveryDays: 2 },
-      { storeName: 'Croma', price: 23990, originalPrice: 23990, url: 'https://www.croma.com/dp/mock-sony-wf-1000xm5', inStock: false, deliveryDays: 3 },
-      { storeName: 'Reliance Digital', price: 23990, originalPrice: 23990, url: 'https://www.reliancedigital.in/dp/mock-sony-wf-1000xm5', inStock: false, deliveryDays: 1 }
+      { storeName: 'Flipkart', price: 23990, originalPrice: 23990, url: 'https://www.flipkart.com/sony-wf-1000xm5-best-noise-cancelling-tws-earbuds-multi-point-upto-36hrs-battery-bluetooth/p/itm7333b29e826e7', inStock: true, deliveryDays: 2 },
+      { storeName: 'Croma', price: 18990, originalPrice: 18990, url: 'https://www.croma.com/sony-wf-1000xm5-tws-earbuds-with-active-noise-cancellation-ipx4-water-resistant-quick-charge-black-/p/273397', inStock: true, deliveryDays: 3 },
+      { storeName: 'Reliance Digital', price: 18990, originalPrice: 18990, url: 'https://www.reliancedigital.in/product/sony-wf1000xm5-tws-earbuds-with-up-to-36-hours-battery-life-and-quick-charge-active-noise-cancellation-black-ln0fcs-7534140', inStock: true, deliveryDays: 1 }
     ],
     priceHistory: [],
     aiRecommendation: {
-      decision: 'AVOID',
-      confidence: 90,
-      summary: 'No verified live dealer price is currently active.',
-      reasoning: ['All linked store channels currently return WAF challenge or invalid mock structures.']
+      decision: 'BUY NOW',
+      confidence: 88,
+      summary: 'Verified live prices available below ₹19,000 on Croma and Reliance Digital.',
+      reasoning: ['Great deal active on Croma at ₹18,990.']
     }
   },
   {
@@ -355,17 +355,17 @@ export const mockProducts: Product[] = [
     bestDealStore: 'Croma',
     bestDealPrice: 0,
     prices: [
-      { storeName: 'Amazon', price: 69999, originalPrice: 69999, url: 'https://www.amazon.in/dp/mock-oneplus-12', inStock: false, deliveryDays: 1 },
-      { storeName: 'Flipkart', price: 69999, originalPrice: 69999, url: 'https://www.flipkart.com/dp/mock-oneplus-12', inStock: false, deliveryDays: 2 },
-      { storeName: 'Croma', price: 69999, originalPrice: 69999, url: 'https://www.croma.com/dp/mock-oneplus-12', inStock: false, deliveryDays: 3 },
+      { storeName: 'Amazon', price: 69999, originalPrice: 69999, url: 'https://www.amazon.in/dp/B0CQPP73S8', inStock: true, deliveryDays: 1 },
+      { storeName: 'Flipkart', price: 69999, originalPrice: 69999, url: 'https://www.flipkart.com/oneplus-12-silky-black-512-gb/p/itm4464454f95a2e', inStock: true, deliveryDays: 2 },
+      { storeName: 'Croma', price: 69999, originalPrice: 69999, url: 'https://www.croma.com/oneplus-12-5g-16gb-ram-512gb-silky-black-/p/304448', inStock: true, deliveryDays: 3 },
       { storeName: 'Reliance Digital', price: 69999, originalPrice: 69999, url: 'https://www.reliancedigital.in/dp/mock-oneplus-12', inStock: false, deliveryDays: 1 }
     ],
     priceHistory: [],
     aiRecommendation: {
-      decision: 'AVOID',
-      confidence: 90,
-      summary: 'No verified live dealer price is currently active.',
-      reasoning: ['All linked store channels currently return WAF challenge or invalid mock structures.']
+      decision: 'BUY NOW',
+      confidence: 85,
+      summary: 'Verified live prices active across Amazon, Flipkart, and Croma.',
+      reasoning: ['Lowest verified price of ₹69,999 is standard across channels.']
     }
   },
   {
@@ -380,16 +380,16 @@ export const mockProducts: Product[] = [
     bestDealPrice: 0,
     prices: [
       { storeName: 'Amazon', price: 144990, originalPrice: 144990, url: 'https://www.amazon.in/dp/mock-dell-xps-13', inStock: false, deliveryDays: 1 },
-      { storeName: 'Flipkart', price: 144990, originalPrice: 144990, url: 'https://www.flipkart.com/dp/mock-dell-xps-13', inStock: false, deliveryDays: 2 },
+      { storeName: 'Flipkart', price: 144990, originalPrice: 144990, url: 'https://www.flipkart.com/dell-xps-intel-core-ultra-7-256v-16-gb-512-gb-ssd-windows-11-home-intel-integrated-arc-120-hz-9350-creator-laptop/p/itm9e503803ce2b8', inStock: true, deliveryDays: 2 },
       { storeName: 'Croma', price: 144990, originalPrice: 144990, url: 'https://www.croma.com/dp/mock-dell-xps-13', inStock: false, deliveryDays: 3 },
       { storeName: 'Reliance Digital', price: 144990, originalPrice: 144990, url: 'https://www.reliancedigital.in/dp/mock-dell-xps-13', inStock: false, deliveryDays: 1 }
     ],
     priceHistory: [],
     aiRecommendation: {
-      decision: 'AVOID',
-      confidence: 90,
-      summary: 'No verified live dealer price is currently active.',
-      reasoning: ['All linked store channels currently return WAF challenge or invalid mock structures.']
+      decision: 'BUY NOW',
+      confidence: 80,
+      summary: 'Verified live deal active on Flipkart.',
+      reasoning: ['Intel Core Ultra 7 listing verified at ₹1,44,990 on Flipkart.']
     }
   }
 ];
