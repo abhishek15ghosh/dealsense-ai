@@ -68,6 +68,10 @@ export async function GET() {
         const isValid = isValidSourceUrl(priceObj.url);
         const updateDoc = {
           $set: {
+            title: product.name,
+            brand: product.name.split(' ')[0],
+            category: product.category,
+            image: product.image,
             productUrl: priceObj.url,
             currentPrice: isValid ? priceObj.price : undefined,
             originalPrice: priceObj.originalPrice,
