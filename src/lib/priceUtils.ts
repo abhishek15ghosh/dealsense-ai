@@ -53,8 +53,8 @@ export function verifyUrlMatchesProduct(url: string, customId: string, expectedN
   if (!url) return false;
   const cleanUrl = url.toLowerCase();
   
-  if (cleanUrl.includes('mock-') || cleanUrl.includes('/mock')) {
-    return cleanUrl.includes(customId.toLowerCase());
+  if (cleanUrl.includes('mock') || cleanUrl.includes('fallback') || cleanUrl.includes('zipcare') || cleanUrl.includes('warranty') || cleanUrl.includes('protect') || cleanUrl.includes('accessory')) {
+    return false;
   }
 
   const expectedKws = expectedName.toLowerCase()

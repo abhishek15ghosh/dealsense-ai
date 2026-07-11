@@ -91,8 +91,6 @@ export async function GET() {
     // Purge mock/invalid ProductSource and stale data from DB
     await ProductSource.deleteMany({
       $or: [
-        { productUrl: { $regex: /mock/i } },
-        { status: 'Failed' },
         { currentPrice: 0 }
       ]
     });

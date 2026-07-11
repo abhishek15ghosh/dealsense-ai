@@ -295,5 +295,101 @@ export const mockProducts: Product[] = [
         'If you need it immediately, Reliance Digital at ₹119,999 is still a solid deal, but patience is advised.'
       ]
     }
+  },
+  {
+    id: 'ipad-pro-m4',
+    name: 'Apple iPad Pro M4 (11-inch, 256GB, Wi-Fi)',
+    description: 'The thinnest Apple product ever features the outrageously powerful M4 chip, a breakthrough Ultra Retina XDR display, and superfast Wi-Fi 6E.',
+    image: '/images/macbookair.png',
+    category: 'Tablets',
+    rating: 4.9,
+    reviewsCount: 340,
+    bestDealStore: 'Croma',
+    bestDealPrice: 0,
+    prices: [
+      { storeName: 'Amazon', price: 99900, originalPrice: 99900, url: 'https://www.amazon.in/dp/mock-ipad-pro-m4', inStock: false, deliveryDays: 1 },
+      { storeName: 'Flipkart', price: 99900, originalPrice: 99900, url: 'https://www.flipkart.com/dp/mock-ipad-pro-m4', inStock: false, deliveryDays: 2 },
+      { storeName: 'Croma', price: 99900, originalPrice: 99900, url: 'https://www.croma.com/dp/mock-ipad-pro-m4', inStock: false, deliveryDays: 3 },
+      { storeName: 'Reliance Digital', price: 99900, originalPrice: 99900, url: 'https://www.reliancedigital.in/dp/mock-ipad-pro-m4', inStock: false, deliveryDays: 1 }
+    ],
+    priceHistory: [],
+    aiRecommendation: {
+      decision: 'AVOID',
+      confidence: 90,
+      summary: 'No verified live dealer price is currently active.',
+      reasoning: ['All linked store channels currently return WAF challenge or invalid mock structures.']
+    }
+  },
+  {
+    id: 'sony-wf-1000xm5',
+    name: 'Sony WF-1000XM5 Wireless Noise Cancelling Earbuds',
+    description: 'The WF-1000XM5 features cutting-edge technology to deliver premium sound quality and the best truly wireless noise-canceling performance on the market.',
+    image: '/images/sonyheadphones.png',
+    category: 'Audio',
+    rating: 4.5,
+    reviewsCount: 710,
+    bestDealStore: 'Croma',
+    bestDealPrice: 0,
+    prices: [
+      { storeName: 'Amazon', price: 23990, originalPrice: 23990, url: 'https://www.amazon.in/dp/mock-sony-wf-1000xm5', inStock: false, deliveryDays: 1 },
+      { storeName: 'Flipkart', price: 23990, originalPrice: 23990, url: 'https://www.flipkart.com/dp/mock-sony-wf-1000xm5', inStock: false, deliveryDays: 2 },
+      { storeName: 'Croma', price: 23990, originalPrice: 23990, url: 'https://www.croma.com/dp/mock-sony-wf-1000xm5', inStock: false, deliveryDays: 3 },
+      { storeName: 'Reliance Digital', price: 23990, originalPrice: 23990, url: 'https://www.reliancedigital.in/dp/mock-sony-wf-1000xm5', inStock: false, deliveryDays: 1 }
+    ],
+    priceHistory: [],
+    aiRecommendation: {
+      decision: 'AVOID',
+      confidence: 90,
+      summary: 'No verified live dealer price is currently active.',
+      reasoning: ['All linked store channels currently return WAF challenge or invalid mock structures.']
+    }
+  },
+  {
+    id: 'oneplus-12',
+    name: 'OnePlus 12 (512GB, Silky Black)',
+    description: 'Redefined flagship smartphone specs with Snapdragon 8 Gen 3, 16GB RAM, 50MP Hasselblad camera, and 100W SUPERVOOC charging.',
+    image: '/images/samsunggalaxy.png',
+    category: 'Smartphones',
+    rating: 4.6,
+    reviewsCount: 512,
+    bestDealStore: 'Croma',
+    bestDealPrice: 0,
+    prices: [
+      { storeName: 'Amazon', price: 69999, originalPrice: 69999, url: 'https://www.amazon.in/dp/mock-oneplus-12', inStock: false, deliveryDays: 1 },
+      { storeName: 'Flipkart', price: 69999, originalPrice: 69999, url: 'https://www.flipkart.com/dp/mock-oneplus-12', inStock: false, deliveryDays: 2 },
+      { storeName: 'Croma', price: 69999, originalPrice: 69999, url: 'https://www.croma.com/dp/mock-oneplus-12', inStock: false, deliveryDays: 3 },
+      { storeName: 'Reliance Digital', price: 69999, originalPrice: 69999, url: 'https://www.reliancedigital.in/dp/mock-oneplus-12', inStock: false, deliveryDays: 1 }
+    ],
+    priceHistory: [],
+    aiRecommendation: {
+      decision: 'AVOID',
+      confidence: 90,
+      summary: 'No verified live dealer price is currently active.',
+      reasoning: ['All linked store channels currently return WAF challenge or invalid mock structures.']
+    }
+  },
+  {
+    id: 'dell-xps-13',
+    name: 'Dell XPS 13 Laptop (Intel Core Ultra 7, 16GB, 512GB SSD)',
+    description: 'Machined aluminum and glass palm rest make this our most elegant laptop yet. Built with Intel Core Ultra processors and advanced Intel Arc graphics.',
+    image: '/images/macbookair.png',
+    category: 'Laptops',
+    rating: 4.4,
+    reviewsCount: 290,
+    bestDealStore: 'Croma',
+    bestDealPrice: 0,
+    prices: [
+      { storeName: 'Amazon', price: 144990, originalPrice: 144990, url: 'https://www.amazon.in/dp/mock-dell-xps-13', inStock: false, deliveryDays: 1 },
+      { storeName: 'Flipkart', price: 144990, originalPrice: 144990, url: 'https://www.flipkart.com/dp/mock-dell-xps-13', inStock: false, deliveryDays: 2 },
+      { storeName: 'Croma', price: 144990, originalPrice: 144990, url: 'https://www.croma.com/dp/mock-dell-xps-13', inStock: false, deliveryDays: 3 },
+      { storeName: 'Reliance Digital', price: 144990, originalPrice: 144990, url: 'https://www.reliancedigital.in/dp/mock-dell-xps-13', inStock: false, deliveryDays: 1 }
+    ],
+    priceHistory: [],
+    aiRecommendation: {
+      decision: 'AVOID',
+      confidence: 90,
+      summary: 'No verified live dealer price is currently active.',
+      reasoning: ['All linked store channels currently return WAF challenge or invalid mock structures.']
+    }
   }
 ];
