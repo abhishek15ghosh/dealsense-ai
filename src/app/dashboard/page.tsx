@@ -80,6 +80,15 @@ interface InsightsData {
 
 // Fallback calculations using mockProducts
 const getFallbackInsights = (): InsightsData => {
+  if (process.env.NODE_ENV === 'production') {
+    return {
+      biggestDrops: [],
+      trendingDeals: [],
+      recentlyDiscounted: [],
+      avgDiscount: 0
+    };
+  }
+
   const fullProducts = mockProducts.map((p) => {
     const doc = p;
     return {
@@ -565,7 +574,12 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {insights.trendingDeals.map((product) => {
+            {insights.trendingDeals.length === 0 ? (
+              <div className="col-span-2 text-center py-12 text-slate-400 font-semibold italic bg-slate-50 rounded-2xl border border-slate-200 text-xs">
+                AI analysis unavailable because no verified live price exists
+              </div>
+            ) : (
+              insights.trendingDeals.map((product) => {
               const originalPrice = product.prices.length > 0 ? product.prices[0].originalPrice : product.bestDealPrice;
               const savedPct = Math.round(
                 ((originalPrice - product.bestDealPrice) / originalPrice) * 100
@@ -628,7 +642,8 @@ export default function Dashboard() {
                   </div>
                 </div>
               );
-            })}
+            })
+          )}
           </div>
         </div>
 
@@ -644,7 +659,12 @@ export default function Dashboard() {
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 divide-y divide-slate-100 max-h-[350px] overflow-y-auto">
-            {insights.biggestDrops.map((p) => {
+            {insights.biggestDrops.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 font-semibold italic text-xs">
+                Live price unavailable
+              </div>
+            ) : (
+              insights.biggestDrops.map((p) => {
               const currentMin = p.bestDealPrice;
               const original = p.prices.length > 0 ? p.prices[0].originalPrice : p.bestDealPrice * 1.15;
               const dropAmt = p.dropAmount ?? (original - currentMin);
@@ -668,7 +688,8 @@ export default function Dashboard() {
                   </div>
                 </div>
               );
-            })}
+            })
+          )}
           </div>
 
           {/* Recent Notifications Card */}

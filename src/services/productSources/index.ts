@@ -15,9 +15,12 @@ const ADAPTERS: ProductAdapter[] = [
   new AmazonAdapter(),
   new FlipkartAdapter(),
   new CromaAdapter(),
-  new RelianceDigitalAdapter(),
-  new BrandD2cAdapter()
+  new RelianceDigitalAdapter()
 ];
+
+if (process.env.NODE_ENV !== 'production') {
+  ADAPTERS.push(new BrandD2cAdapter());
+}
 
 export async function searchProductSources(query: string): Promise<UnifiedProduct[]> {
   const promises = ADAPTERS.map((adapter) =>
@@ -84,6 +87,8 @@ export async function ingestProductSource(listing: UnifiedProduct): Promise<void
       summary = 'Currently at full retail price. Avoid buying unless urgent.';
     }
 
+    const isProduction = process.env.NODE_ENV === 'production';
+
     product = await Product.create({
       customId,
       name: matchedCatalogItem ? matchedCatalogItem.title : listing.title,
@@ -92,9 +97,18 @@ export async function ingestProductSource(listing: UnifiedProduct): Promise<void
       category: listing.category,
       rating: matchedCatalogItem ? matchedCatalogItem.rating : 4.5,
       reviewsCount: matchedCatalogItem ? matchedCatalogItem.reviewsCount : 120,
-      bestDealStore: listing.platform,
-      bestDealPrice: listing.currentPrice,
-      aiRecommendation: {
+      bestDealStore: isProduction ? 'None' : listing.platform,
+      bestDealPrice: isProduction ? 0 : listing.currentPrice,
+      aiRecommendation: isProduction ? {
+        decision: 'WAIT',
+        confidence: 0,
+        summary: 'Recommendation unavailable because no live verified retailer prices were found.',
+        reasoning: ['Live price data is currently unavailable across all sources.'],
+        estimatedSavings: 0,
+        bestExpectedPurchaseDate: 'N/A',
+        expectedBetterPriceRange: 'N/A',
+        bestPlatform: 'N/A'
+      } : {
         decision,
         confidence,
         reasoning,
@@ -102,13 +116,15 @@ export async function ingestProductSource(listing: UnifiedProduct): Promise<void
       }
     });
 
-    if (decision === 'BUY NOW') {
+    if (!isProduction && decision === 'BUY NOW') {
       const { triggerWatchlistNotificationForBuyNow } = await import('@/services/notificationService');
       await triggerWatchlistNotificationForBuyNow(customId, product.name);
     }
 
-    // Generate mock price history trends for new product
-    await generateMockPriceHistory(customId, msrp);
+    if (!isProduction) {
+      // Generate mock price history trends for new product
+      await generateMockPriceHistory(customId, msrp);
+    }
   }
 
   // 3. Find or create the ProductSource document

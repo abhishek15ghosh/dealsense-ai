@@ -117,7 +117,7 @@ export function getVerifiedBestDeal(sources: SimpleProductSource[]): VerifiedBes
       originalPrice !== undefined &&
       originalPrice !== null &&
       originalPrice > 0 &&
-      price < originalPrice &&
+      price <= originalPrice &&
       isSuccess &&
       inStock &&
       isValidSourceUrl(url) &&

@@ -307,7 +307,7 @@ export const mockProducts: Product[] = [
     bestDealStore: 'Croma',
     bestDealPrice: 0,
     prices: [
-      { storeName: 'Amazon', price: 99900, originalPrice: 99900, url: 'https://www.amazon.in/dp/mock-ipad-pro-m4', inStock: false, deliveryDays: 1 },
+      { storeName: 'Amazon', price: 99900, originalPrice: 99900, url: '', inStock: false, deliveryDays: 1 },
       { storeName: 'Flipkart', price: 99900, originalPrice: 99900, url: 'https://www.flipkart.com/apple-2024-ipad-pro-m4-256-gb-rom-11-0-inch-wi-fi-only-space-black/p/itmcac10b3f31928', inStock: true, deliveryDays: 2 },
       { storeName: 'Croma', price: 89900, originalPrice: 89900, url: 'https://www.croma.com/apple-ipad-pro-wi-fi-11-inch-256gb-space-black-2024-model-/p/301933', inStock: true, deliveryDays: 3 },
       { storeName: 'Reliance Digital', price: 99900, originalPrice: 99900, url: 'https://www.reliancedigital.in/product/apple-ipad-pro-5th-gen-2024-2822-cm-11-inch-wi-fi-tablet-256-gb-silver-lvxv99-7621066', inStock: true, deliveryDays: 1 }
@@ -315,7 +315,7 @@ export const mockProducts: Product[] = [
     priceHistory: [],
     aiRecommendation: {
       decision: 'BUY NOW',
-      confidence: 90,
+      confidence: 88,
       summary: 'Verified live store pricing is active across prime channels.',
       reasoning: ['Lowest verified live price is active on Croma at ₹89,900.']
     }
@@ -331,7 +331,7 @@ export const mockProducts: Product[] = [
     bestDealStore: 'Croma',
     bestDealPrice: 0,
     prices: [
-      { storeName: 'Amazon', price: 23990, originalPrice: 23990, url: 'https://www.amazon.in/dp/mock-sony-wf-1000xm5', inStock: false, deliveryDays: 1 },
+      { storeName: 'Amazon', price: 23990, originalPrice: 23990, url: '', inStock: false, deliveryDays: 1 },
       { storeName: 'Flipkart', price: 23990, originalPrice: 23990, url: 'https://www.flipkart.com/sony-wf-1000xm5-best-noise-cancelling-tws-earbuds-multi-point-upto-36hrs-battery-bluetooth/p/itm7333b29e826e7', inStock: true, deliveryDays: 2 },
       { storeName: 'Croma', price: 18990, originalPrice: 18990, url: 'https://www.croma.com/sony-wf-1000xm5-tws-earbuds-with-active-noise-cancellation-ipx4-water-resistant-quick-charge-black-/p/273397', inStock: true, deliveryDays: 3 },
       { storeName: 'Reliance Digital', price: 18990, originalPrice: 18990, url: 'https://www.reliancedigital.in/product/sony-wf1000xm5-tws-earbuds-with-up-to-36-hours-battery-life-and-quick-charge-active-noise-cancellation-black-ln0fcs-7534140', inStock: true, deliveryDays: 1 }
@@ -358,7 +358,7 @@ export const mockProducts: Product[] = [
       { storeName: 'Amazon', price: 69999, originalPrice: 69999, url: 'https://www.amazon.in/dp/B0CQPP73S8', inStock: true, deliveryDays: 1 },
       { storeName: 'Flipkart', price: 69999, originalPrice: 69999, url: 'https://www.flipkart.com/oneplus-12-silky-black-512-gb/p/itm4464454f95a2e', inStock: true, deliveryDays: 2 },
       { storeName: 'Croma', price: 69999, originalPrice: 69999, url: 'https://www.croma.com/oneplus-12-5g-16gb-ram-512gb-silky-black-/p/304448', inStock: true, deliveryDays: 3 },
-      { storeName: 'Reliance Digital', price: 69999, originalPrice: 69999, url: 'https://www.reliancedigital.in/dp/mock-oneplus-12', inStock: false, deliveryDays: 1 }
+      { storeName: 'Reliance Digital', price: 69999, originalPrice: 69999, url: '', inStock: false, deliveryDays: 1 }
     ],
     priceHistory: [],
     aiRecommendation: {
@@ -379,10 +379,10 @@ export const mockProducts: Product[] = [
     bestDealStore: 'Croma',
     bestDealPrice: 0,
     prices: [
-      { storeName: 'Amazon', price: 144990, originalPrice: 144990, url: 'https://www.amazon.in/dp/mock-dell-xps-13', inStock: false, deliveryDays: 1 },
+      { storeName: 'Amazon', price: 144990, originalPrice: 144990, url: '', inStock: false, deliveryDays: 1 },
       { storeName: 'Flipkart', price: 144990, originalPrice: 144990, url: 'https://www.flipkart.com/dell-xps-intel-core-ultra-7-256v-16-gb-512-gb-ssd-windows-11-home-intel-integrated-arc-120-hz-9350-creator-laptop/p/itm9e503803ce2b8', inStock: true, deliveryDays: 2 },
-      { storeName: 'Croma', price: 144990, originalPrice: 144990, url: 'https://www.croma.com/dp/mock-dell-xps-13', inStock: false, deliveryDays: 3 },
-      { storeName: 'Reliance Digital', price: 144990, originalPrice: 144990, url: 'https://www.reliancedigital.in/dp/mock-dell-xps-13', inStock: false, deliveryDays: 1 }
+      { storeName: 'Croma', price: 144990, originalPrice: 144990, url: '', inStock: false, deliveryDays: 3 },
+      { storeName: 'Reliance Digital', price: 144990, originalPrice: 144990, url: '', inStock: false, deliveryDays: 1 }
     ],
     priceHistory: [],
     aiRecommendation: {

@@ -299,7 +299,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
   const displayRecommendation = isBestPriceAvailable ? product.aiRecommendation : {
     decision: 'WAIT' as const,
     confidence: 0,
-    summary: 'AI Deal Intelligence is currently unavailable because there are no verified live prices for this product.',
+    summary: 'AI analysis unavailable because no verified live price exists',
     reasoning: ['Please link a valid, active retailer source to enable AI analysis.'],
     expectedBetterPriceRange: 'N/A',
     bestPlatform: 'N/A',
@@ -393,7 +393,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
 
             <div className="border-t border-slate-100 pt-4 flex flex-wrap items-baseline gap-x-4 gap-y-2">
               <span className="text-[10px] font-extrabold uppercase text-slate-400 block w-full">
-                Best Current Retail Value {isBestPriceAvailable ? `(${bestDealStore})` : ''}
+                {isBestPriceAvailable ? `Best Current Retail Value (${bestDealStore})` : 'Best deal unavailable'}
               </span>
               {isBestPriceAvailable ? (
                 <>
@@ -409,7 +409,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
                 </>
               ) : (
                 <span className="text-xl font-bold text-slate-400 italic">
-                  Live price currently unavailable
+                  Live price unavailable
                 </span>
               )}
             </div>

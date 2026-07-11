@@ -9,6 +9,18 @@ export class AmazonProvider implements RetailerPriceProvider {
     try {
       // 1. Mock URL Intercept
       if (url.includes('mock-') || url.includes('/mock') || !url.startsWith('http')) {
+        if (process.env.NODE_ENV === 'production') {
+          return {
+            title: 'URL Mismatch Page',
+            price: 0,
+            retailer: this.retailerName,
+            productUrl: url,
+            success: false,
+            error: 'URL model keywords mismatch',
+            timestamp
+          };
+        }
+
         const mockPrices: Record<string, { title: string; price: number }> = {
           'mock-iphone15': { title: 'Apple iPhone 15 Pro (128GB, Natural Titanium)', price: 121410 },
           'mock-macbookm3': { title: 'Apple MacBook Air M3 (13.6-inch, 8GB RAM, 256GB SSD)', price: 106857 },

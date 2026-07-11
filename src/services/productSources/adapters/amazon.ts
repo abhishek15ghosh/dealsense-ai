@@ -1,5 +1,6 @@
 import { ProductAdapter, UnifiedProduct } from '../types';
 import { searchCatalog } from './catalog';
+import { REAL_URLS } from '@/lib/realUrls';
 
 export class AmazonAdapter implements ProductAdapter {
   platformName = 'Amazon';
@@ -13,6 +14,9 @@ export class AmazonAdapter implements ProductAdapter {
       // Deterministic discount percentage between 5% and 10%
       const discountPct = 0.05 + (item.slug.charCodeAt(0) % 6) / 100;
       const currentPrice = Math.round(item.msrp * (1 - discountPct));
+      
+      const realUrl = REAL_URLS[item.slug]?.[this.platformName] || '';
+      const productUrl = process.env.NODE_ENV === 'production' ? realUrl : (realUrl || `https://amazon.in/dp/mock-${item.slug}`);
 
       return {
         title: item.title,
@@ -22,8 +26,8 @@ export class AmazonAdapter implements ProductAdapter {
         currentPrice,
         originalPrice: item.msrp,
         platform: this.platformName,
-        productUrl: `https://amazon.in/dp/mock-${item.slug}`,
-        availability: 'In Stock',
+        productUrl,
+        availability: productUrl ? 'In Stock' : 'Unavailable',
         lastChecked: new Date()
       };
     });

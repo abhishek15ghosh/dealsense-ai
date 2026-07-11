@@ -1,5 +1,6 @@
 import { ProductAdapter, UnifiedProduct } from '../types';
 import { searchCatalog } from './catalog';
+import { REAL_URLS } from '@/lib/realUrls';
 
 export class CromaAdapter implements ProductAdapter {
   platformName = 'Croma';
@@ -12,6 +13,9 @@ export class CromaAdapter implements ProductAdapter {
       const discountPct = 0.04 + (item.slug.charCodeAt(2) % 6) / 100;
       const currentPrice = Math.round(item.msrp * (1 - discountPct));
 
+      const realUrl = REAL_URLS[item.slug]?.[this.platformName] || '';
+      const productUrl = process.env.NODE_ENV === 'production' ? realUrl : (realUrl || `https://croma.com/mock-${item.slug}`);
+
       return {
         title: item.title,
         brand: item.brand,
@@ -20,8 +24,8 @@ export class CromaAdapter implements ProductAdapter {
         currentPrice,
         originalPrice: item.msrp,
         platform: this.platformName,
-        productUrl: `https://croma.com/mock-${item.slug}`,
-        availability: 'In Stock',
+        productUrl,
+        availability: productUrl ? 'In Stock' : 'Unavailable',
         lastChecked: new Date()
       };
     });

@@ -32,87 +32,15 @@ export async function runPriceMonitoringEngine() {
       // Fetch ProductSource records for this product
       let sources = await ProductSource.find({ productId });
       
-      // Auto-seed default Amazon, Flipkart, Croma, and Reliance Digital mock ProductSource records if none exists
+      // If no sources exist, do NOT seed mock sources.
       if (sources.length === 0) {
-        console.log(`[Monitoring Engine] Seeding default active ProductSources for ${productId}`);
-        const defaultTitle = productDoc ? productDoc.name : productId.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        const defaultBestPrice = productDoc ? productDoc.bestDealPrice || 49999 : 49999;
-        
-        const matchedMock = mockProducts.find(p => p.id === productId);
-        const amazonUrl = matchedMock?.prices.find(p => p.storeName === 'Amazon')?.url || `https://www.amazon.in/dp/mock-${productId}`;
-        const flipkartUrl = matchedMock?.prices.find(p => p.storeName === 'Flipkart')?.url || `https://www.flipkart.com/dp/mock-${productId}`;
-        const cromaUrl = matchedMock?.prices.find(p => p.storeName === 'Croma')?.url || `https://www.croma.com/dp/mock-${productId}`;
-        const relianceUrl = matchedMock?.prices.find(p => p.storeName === 'Reliance Digital')?.url || `https://www.reliancedigital.in/dp/mock-${productId}`;
-
-        const amazonSource = await ProductSource.create({
-          productId,
-          title: defaultTitle,
-          brand: productDoc ? productDoc.brand || 'Brand' : 'Brand',
-          category: productDoc ? productDoc.category || 'Gadgets' : 'Gadgets',
-          image: productDoc ? productDoc.image || `/images/${productId}.png` : `/images/${productId}.png`,
-          currentPrice: defaultBestPrice,
-          originalPrice: productDoc ? (productDoc.originalPrice || defaultBestPrice * 1.15) : defaultBestPrice * 1.15,
-          platform: 'Amazon',
-          retailer: 'Amazon',
-          productUrl: amazonUrl,
-          availability: 'In Stock',
-          lastChecked: new Date(),
-          active: true,
-          status: 'Success'
-        });
-
-        const flipkartSource = await ProductSource.create({
-          productId,
-          title: defaultTitle,
-          brand: productDoc ? productDoc.brand || 'Brand' : 'Brand',
-          category: productDoc ? productDoc.category || 'Gadgets' : 'Gadgets',
-          image: productDoc ? productDoc.image || `/images/${productId}.png` : `/images/${productId}.png`,
-          currentPrice: Math.round(defaultBestPrice * 1.02),
-          originalPrice: productDoc ? (productDoc.originalPrice || defaultBestPrice * 1.15) : defaultBestPrice * 1.15,
-          platform: 'Flipkart',
-          retailer: 'Flipkart',
-          productUrl: flipkartUrl,
-          availability: 'In Stock',
-          lastChecked: new Date(),
-          active: true,
-          status: 'Success'
-        });
-
-        const cromaSource = await ProductSource.create({
-          productId,
-          title: defaultTitle,
-          brand: productDoc ? productDoc.brand || 'Brand' : 'Brand',
-          category: productDoc ? productDoc.category || 'Gadgets' : 'Gadgets',
-          image: productDoc ? productDoc.image || `/images/${productId}.png` : `/images/${productId}.png`,
-          currentPrice: Math.round(defaultBestPrice * 0.95),
-          originalPrice: productDoc ? (productDoc.originalPrice || defaultBestPrice * 1.15) : defaultBestPrice * 1.15,
-          platform: 'Croma',
-          retailer: 'Croma',
-          productUrl: cromaUrl,
-          availability: 'In Stock',
-          lastChecked: new Date(),
-          active: true,
-          status: 'Success'
-        });
-
-        const relianceSource = await ProductSource.create({
-          productId,
-          title: defaultTitle,
-          brand: productDoc ? productDoc.brand || 'Brand' : 'Brand',
-          category: productDoc ? productDoc.category || 'Gadgets' : 'Gadgets',
-          image: productDoc ? productDoc.image || `/images/${productId}.png` : `/images/${productId}.png`,
-          currentPrice: Math.round(defaultBestPrice * 0.98),
-          originalPrice: productDoc ? (productDoc.originalPrice || defaultBestPrice * 1.15) : defaultBestPrice * 1.15,
-          platform: 'Reliance Digital',
-          retailer: 'Reliance Digital',
-          productUrl: relianceUrl,
-          availability: 'In Stock',
-          lastChecked: new Date(),
-          active: true,
-          status: 'Success'
-        });
-
-        sources = [amazonSource, flipkartSource, cromaSource, relianceSource];
+        console.log(`[Monitoring Engine] No ProductSources found for ${productId}. Skipping.`);
+        if (productDoc) {
+          productDoc.bestDealPrice = 0;
+          productDoc.bestDealStore = 'None';
+          await productDoc.save();
+        }
+        continue;
       }
 
       // Loop through all active sources and update their prices
