@@ -52,4 +52,8 @@ const ProductSourceSchema = new Schema<IProductSource>({
 
 ProductSourceSchema.index({ productId: 1, platform: 1 }, { unique: true });
 
-export default mongoose.models.ProductSource || mongoose.model<IProductSource>('ProductSource', ProductSourceSchema);
+if (mongoose.models && mongoose.models.ProductSource) {
+  delete mongoose.models.ProductSource;
+}
+
+export default mongoose.model<IProductSource>('ProductSource', ProductSourceSchema);
