@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
           latestTrackedPrice,
           prices: sources.map((s) => ({
             storeName: s.platform,
-            price: s.currentPrice || 0,
+            price: s.currentPrice ?? null,
             originalPrice: s.originalPrice,
             url: s.productUrl,
             inStock: s.availability === 'In Stock',

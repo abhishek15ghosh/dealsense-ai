@@ -140,9 +140,9 @@ export default function WatchlistPage() {
                       <div className="space-y-0.5">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Best Price</span>
                         <span className="font-display font-black text-base text-slate-800">
-                          ₹{current.toLocaleString('en-IN')}
+                          {current && current > 0 ? `₹${current.toLocaleString('en-IN')}` : 'Price unavailable'}
                         </span>
-                        {product.latestTrackedPrice !== undefined && product.latestTrackedPrice !== null && (
+                        {product.latestTrackedPrice !== undefined && product.latestTrackedPrice !== null && product.latestTrackedPrice > 0 && (
                           <div className="text-[9px] text-slate-500 font-bold mt-0.5">
                             Tracked: <span className="text-blue-650 font-black">₹{product.latestTrackedPrice.toLocaleString('en-IN')}</span>
                           </div>
@@ -151,7 +151,9 @@ export default function WatchlistPage() {
                       <div className="text-right">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Est. Savings</span>
                         <span className="text-xs text-green-600 font-bold block">
-                          ₹{(product.aiRecommendation?.estimatedSavings !== undefined ? product.aiRecommendation.estimatedSavings : saving).toLocaleString('en-IN')}
+                          {current && current > 0 
+                            ? `₹${(product.aiRecommendation?.estimatedSavings !== undefined ? product.aiRecommendation.estimatedSavings : saving).toLocaleString('en-IN')}`
+                            : 'N/A'}
                         </span>
                         {product.aiRecommendation?.bestExpectedPurchaseDate && (
                           <div className="text-[8px] text-slate-500 font-bold mt-0.5">

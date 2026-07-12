@@ -48,7 +48,7 @@ async function seedDatabaseIfEmpty() {
         brand: p.name.split(' ')[0], // Extract brand (first word)
         category: p.category,
         image: p.image,
-        currentPrice: isValid ? source.price : undefined,
+        currentPrice: isValid ? (source.price ?? undefined) : undefined,
         originalPrice: source.originalPrice,
         platform: source.storeName,
         productUrl: source.url,

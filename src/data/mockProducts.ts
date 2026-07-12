@@ -1,6 +1,6 @@
 export interface StorePrice {
-  storeName: 'Amazon' | 'Flipkart' | 'Croma' | 'Reliance Digital';
-  price: number;
+  storeName: string;
+  price: number | null;
   originalPrice: number;
   url: string;
   inStock: boolean;

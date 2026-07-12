@@ -52,7 +52,7 @@ interface DashboardProduct {
   priceTrend?: 'up' | 'down' | 'stable';
   prices: Array<{
     storeName: string;
-    price: number;
+    price: number | null;
     originalPrice: number;
     url: string;
     inStock: boolean;
