@@ -22,6 +22,7 @@ export interface IProductSource extends Document {
   scrapeStatus?: string;
   productTitleMatched?: boolean;
   pinCode?: string;
+  dataSource?: string;
 }
 
 const ProductSourceSchema = new Schema<IProductSource>({
@@ -45,7 +46,8 @@ const ProductSourceSchema = new Schema<IProductSource>({
   extractedPrice: { type: Number },
   scrapeStatus: { type: String },
   productTitleMatched: { type: Boolean },
-  pinCode: { type: String }
+  pinCode: { type: String },
+  dataSource: { type: String, default: 'scrape' }
 });
 
 ProductSourceSchema.index({ productId: 1, platform: 1 }, { unique: true });

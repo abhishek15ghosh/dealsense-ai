@@ -37,6 +37,7 @@ interface ProductPrice {
   scrapeStatus?: string;
   productTitleMatched?: boolean;
   pinCode?: string;
+  dataSource?: string;
 }
 
 interface ProductPriceHistory {
@@ -105,6 +106,8 @@ export default function ProductDetailsPage({ params }: PageProps) {
     try {
       const res = await fetch('/api/system/trigger-price-check', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: id })
       });
       if (res.ok) {
         const prodRes = await fetch(`/api/products/${id}`);
@@ -696,7 +699,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
                       {isExpanded && (
                         <tr className="bg-slate-50/50">
                           <td colSpan={6} className="px-6 py-4 border-t border-b border-slate-100 text-[11px] text-slate-500 font-medium">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-1">
+                             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 py-1">
                               <div>
                                 <span className="block text-[9px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Scrape Status</span>
                                 <span className={`font-bold inline-flex items-center space-x-1 ${storePrice.status === 'Success' ? 'text-green-600' : 'text-red-500'}`}>
@@ -719,6 +722,10 @@ export default function ProductDetailsPage({ params }: PageProps) {
                               <div>
                                 <span className="block text-[9px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Location/PIN Used</span>
                                 <span className="font-bold text-slate-700">{storePrice.pinCode || '110001 (Default)'}</span>
+                              </div>
+                              <div>
+                                <span className="block text-[9px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Data Source</span>
+                                <span className="font-bold text-slate-700 capitalize">{storePrice.dataSource || 'scrape'}</span>
                               </div>
                             </div>
                             <div className="mt-3 pt-3 border-t border-slate-200/50 flex flex-col space-y-1.5 text-[10px] text-slate-500">

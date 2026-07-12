@@ -62,7 +62,8 @@ export async function GET(request: NextRequest) {
             inStock: s.availability === 'In Stock',
             status: s.status,
             lastChecked: s.lastChecked,
-            deliveryDays: s.platform.includes('D2C') ? 3 : (s.platform === 'Amazon' ? 1 : 2)
+            deliveryDays: s.platform.includes('D2C') ? 3 : (s.platform === 'Amazon' ? 1 : 2),
+            dataSource: s.dataSource || 'scrape'
           })),
           priceHistory: history.map((h) => {
             const hObj: Record<string, string | number | undefined> = {

@@ -12,8 +12,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('[Trigger] Triggering manual price check securely from dashboard for:', tokenUser.email);
-    
+    let productId = undefined;
+    try {
+      const body = await request.json();
+      productId = body?.productId;
+    } catch {
+      // Body is empty or malformed
+    }
+
+    if (productId === 'sony-wh-1000xm5') {
+      const { refreshProductPricesWithSerpApi } = await import('@/services/serpApiShoppingService');
+      const res = await refreshProductPricesWithSerpApi(productId);
+      if (!res.success) {
+        return NextResponse.json({ success: false, error: res.error }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, message: 'SerpAPI price check completed successfully.', data: { refreshedCount: res.count } }, { status: 200 });
+    }
+
     const startTime = new Date();
     const stats = await runScheduledPriceCheck();
 

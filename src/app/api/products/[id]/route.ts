@@ -293,7 +293,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
         extractedPrice: s.extractedPrice,
         scrapeStatus: s.scrapeStatus,
         productTitleMatched: s.productTitleMatched,
-        pinCode: s.pinCode
+        pinCode: s.pinCode,
+        dataSource: s.dataSource || 'scrape'
       })),
       priceHistory: sortedDailyHistory.map((d) => {
         const hObj: Record<string, string | number | undefined> = {
