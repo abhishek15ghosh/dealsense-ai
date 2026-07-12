@@ -167,7 +167,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       const firstSource = sources[0];
       const msrp = firstSource ? firstSource.originalPrice : currentBestPrice;
       const discountPercentage = deal.savingsPct;
-      const similarPricePlatformsCount = sources.filter((s) => s.currentPrice <= currentBestPrice * 1.02).length;
+      const similarPricePlatformsCount = sources.filter((s) => s.currentPrice && s.currentPrice <= currentBestPrice * 1.02).length;
       const stockAvailable = deal.hasDeal;
       const priceVolatility = lowestRecordedPrice > 0 ? (highestRecordedPrice - lowestRecordedPrice) / lowestRecordedPrice : 0;
 

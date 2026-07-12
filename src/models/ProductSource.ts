@@ -6,7 +6,7 @@ export interface IProductSource extends Document {
   brand: string;
   category: string;
   image: string;
-  currentPrice: number;
+  currentPrice?: number;
   originalPrice: number;
   platform: string; // Amazon, Flipkart, Croma, Reliance Digital, Brand D2C, etc.
   retailer?: string; // Amazon, Flipkart, Croma, Reliance Digital, etc.

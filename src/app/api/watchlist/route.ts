@@ -136,12 +136,12 @@ export async function GET(request: NextRequest) {
           bestDealPrice: doc.bestDealPrice,
           latestTrackedPrice,
           prices: sources.map((s) => ({
-            storeName: s.storeName,
-            price: s.price,
+            storeName: s.platform,
+            price: s.currentPrice || 0,
             originalPrice: s.originalPrice,
-            url: s.url,
-            inStock: s.inStock,
-            deliveryDays: s.deliveryDays
+            url: s.productUrl,
+            inStock: s.availability === 'In Stock',
+            deliveryDays: s.platform.includes('D2C') ? 3 : (s.platform === 'Amazon' ? 1 : 2)
           })),
           priceHistory: history.map((h) => ({
             date: h.date,
