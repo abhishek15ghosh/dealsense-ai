@@ -55,44 +55,62 @@ export async function refreshProductPricesWithSerpApi(productId: string): Promis
 
     // 3. Strict canonical matching
     const matchedTokens: string[] = [];
-    const brandLower = 'sony';
-    const modelLower = 'wh-1000xm5';
-    const modelLowerNoHyphen = 'wh1000xm5';
-    const excludes = [
-      'wf-1000xm5', 'wf1000xm5', 'xm4', 'wh-1000xm4', 'wh1000xm4',
-      'case', 'cover', 'cushion', 'pad', 'hanger', 'stand', 'cable',
-      'replacement', 'earpad', 'refurbished', 'renewed', 'used', 'accessory', 'accessories'
-    ];
-    const otherColors = ['silver', 'platinum', 'blue', 'white', 'sand', 'gold'];
 
-    shoppingResults.forEach((item: any) => {
-      const titleLower = (item.title || '').toLowerCase();
+    if (productId === 'sony-wh-1000xm5') {
+      const brandLower = 'sony';
+      const modelLower = 'wh-1000xm5';
+      const modelLowerNoHyphen = 'wh1000xm5';
+      const excludes = [
+        'wf-1000xm5', 'wf1000xm5', 'xm4', 'wh-1000xm4', 'wh1000xm4',
+        'case', 'cover', 'cushion', 'pad', 'hanger', 'stand', 'cable',
+        'replacement', 'earpad', 'refurbished', 'renewed', 'used', 'accessory', 'accessories'
+      ];
+      const otherColors = ['silver', 'platinum', 'blue', 'white', 'sand', 'gold'];
 
-      // Check brand
-      if (!titleLower.includes(brandLower)) return;
+      shoppingResults.forEach((item: any) => {
+        const titleLower = (item.title || '').toLowerCase();
+        if (!titleLower.includes(brandLower)) return;
+        const hasModel = titleLower.includes(modelLower) || titleLower.replace(/-/g, '').includes(modelLowerNoHyphen);
+        if (!hasModel) return;
+        for (const ex of excludes) {
+          if (titleLower.includes(ex)) return;
+        }
+        for (const color of otherColors) {
+          if (titleLower.includes(color)) return;
+        }
+        const isHeadphones = titleLower.includes('headphones') || titleLower.includes('headphone') || titleLower.includes('headset') || titleLower.includes('over-ear') || titleLower.includes('over ear') || titleLower.includes('noise cancelling') || titleLower.includes('noise canceling');
+        if (!isHeadphones) return;
+        if (item.immersive_product_page_token) {
+          matchedTokens.push(item.immersive_product_page_token);
+        }
+      });
+    } else if (productId === 'samsung-galaxy-s24-ultra') {
+      const brandLower = 'samsung';
+      const excludes = [
+        's24 plus', 's24+', 's25', 's23', 'fe', 'plus', '128gb', '512gb', '1tb',
+        'case', 'cover', 'screen protector', 'tempered glass', 'lens protector', 'stylus', 'pen', 'holder',
+        'refurbished', 'renewed', 'used', 'pre-owned', 'charger', 'adapter', 'cable', 'dock', 'stand'
+      ];
+      const otherColors = ['black', 'yellow', 'violet', 'amber', 'blue', 'green', 'orange'];
 
-      // Check model
-      const hasModel = titleLower.includes(modelLower) || titleLower.replace(/-/g, '').includes(modelLowerNoHyphen);
-      if (!hasModel) return;
-
-      // Check excludes
-      for (const ex of excludes) {
-        if (titleLower.includes(ex)) return;
-      }
-
-      // Check colors
-      for (const color of otherColors) {
-        if (titleLower.includes(color)) return;
-      }
-
-      // Check product type
-      const isHeadphones = titleLower.includes('headphones') || titleLower.includes('headphone') || titleLower.includes('headset') || titleLower.includes('over-ear') || titleLower.includes('over ear') || titleLower.includes('noise cancelling') || titleLower.includes('noise canceling');
-      if (!isHeadphones) return;
-
-      if (item.immersive_product_page_token) {
-        matchedTokens.push(item.immersive_product_page_token);
-      }
-    });
+      shoppingResults.forEach((item: any) => {
+        const titleLower = (item.title || '').toLowerCase();
+        if (!titleLower.includes(brandLower)) return;
+        if (!titleLower.includes('s24 ultra') && !titleLower.includes('s24ultra') && !titleLower.includes('s24-ultra')) return;
+        for (const ex of excludes) {
+          if (titleLower.includes(ex)) return;
+        }
+        for (const color of otherColors) {
+          if (titleLower.includes(color)) return;
+        }
+        if (!titleLower.includes('256')) return;
+        if (item.immersive_product_page_token) {
+          matchedTokens.push(item.immersive_product_page_token);
+        }
+      });
+    } else {
+      return { success: false, error: `Product SerpAPI refresh not supported for: ${productId}` };
+    }
 
     // Remove duplicates from matched tokens
     const uniqueTokens = Array.from(new Set(matchedTokens));

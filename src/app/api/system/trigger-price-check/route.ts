@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       // Body is empty or malformed
     }
 
-    if (productId === 'sony-wh-1000xm5') {
+    if (productId === 'sony-wh-1000xm5' || productId === 'samsung-galaxy-s24-ultra') {
       const { refreshProductPricesWithSerpApi } = await import('@/services/serpApiShoppingService');
       const res = await refreshProductPricesWithSerpApi(productId);
       if (!res.success) {
