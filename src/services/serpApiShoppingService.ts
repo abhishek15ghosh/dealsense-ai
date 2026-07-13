@@ -89,7 +89,8 @@ export async function refreshProductPricesWithSerpApi(productId: string): Promis
       const excludes = [
         's24 plus', 's24+', 's25', 's23', 'fe', 'plus', '128gb', '512gb', '1tb',
         'case', 'cover', 'screen protector', 'tempered glass', 'lens protector', 'stylus', 'pen', 'holder',
-        'refurbished', 'renewed', 'used', 'pre-owned', 'charger', 'adapter', 'cable', 'dock', 'stand'
+        'refurbished', 'renewed', 'used', 'pre-owned', 'charger', 'adapter', 'cable', 'dock', 'stand',
+        'korea', 'korean', 'replica', 'clone', 'copy', 'first copy', '1st copy'
       ];
       const otherColors = ['black', 'yellow', 'violet', 'amber', 'blue', 'green', 'orange'];
 
