@@ -175,6 +175,16 @@ export async function refreshProductPricesWithSerpApi(productId: string): Promis
             storeName = 'Reliance Digital';
           }
 
+          // Strict whitelist for S24 Ultra to avoid replica/clone scams
+          const allowedStores = [
+            'Amazon', 'Flipkart', 'Croma', 'Reliance Digital', 'Mobile Express',
+            'Tata CLiQ - Fashion', 'Tata CLiQ', 'Vijay Sales', 'JioMart Electronics', 'JioMart', 'AJIO.com', 'AJIO'
+          ];
+          if (productId === 'samsung-galaxy-s24-ultra' && !allowedStores.includes(storeName)) {
+            console.log(`[SerpAPI Refresh] Rejecting unverified/replica store: ${storeName}`);
+            return;
+          }
+
           // Strict validation requirements
           if (!store.extracted_price || store.extracted_price <= 0) return;
           if (!store.link || !store.link.startsWith('https://')) return;
