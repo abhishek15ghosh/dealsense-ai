@@ -465,7 +465,7 @@ function evaluateOffer(
     // 7. Warranty and Condition (Evidence-Based Validation)
     const establishedRetailers = [
       'amazon', 'flipkart', 'croma', 'reliance digital', 'samsung', 
-      'vijay sales', 'jiomart', 'ajio', 'tata cliq', 'mobile express'
+      'vijay sales', 'jiomart', 'ajio', 'tata cliq', 'tata neu', 'mobile express'
     ];
     
     const isEstablished = establishedRetailers.some(r => 
