@@ -45,6 +45,9 @@ export async function runPriceMonitoringEngine() {
 
       // Loop through all active sources and update their prices
       const fetchPromises = sources.map(async (source) => {
+        if (source.dataSource === 'serpapi') {
+          return source;
+        }
         try {
           const isValid = isValidSourceUrl(source.productUrl);
           if (!isValid) {
