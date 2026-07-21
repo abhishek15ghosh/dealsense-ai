@@ -87,6 +87,7 @@ export interface SimpleProductSource {
   inStock?: boolean;
   status?: string;
   lastChecked?: Date | string;
+  dataSource?: string;
 }
 
 export interface VerifiedBestDealResult {
@@ -110,6 +111,14 @@ export function getVerifiedBestDeal(sources: SimpleProductSource[]): VerifiedBes
     const isSuccess = s.status === 'Success';
     const hasTimestamp = !!s.lastChecked;
 
+    // Shared Freshness Filter for SerpAPI prices (dynamic age check in memory)
+    let isFresh = true;
+    if (s.dataSource === 'serpapi' && s.lastChecked) {
+      const ttlHours = Number(process.env.SERPAPI_PRICE_TTL_HOURS || '24');
+      const diffMs = Date.now() - new Date(s.lastChecked).getTime();
+      isFresh = (diffMs / (1000 * 60 * 60)) <= ttlHours;
+    }
+
     return (
       price !== undefined &&
       price !== null &&
@@ -120,6 +129,7 @@ export function getVerifiedBestDeal(sources: SimpleProductSource[]): VerifiedBes
       price <= originalPrice &&
       isSuccess &&
       inStock &&
+      isFresh &&
       isValidSourceUrl(url) &&
       hasTimestamp
     );

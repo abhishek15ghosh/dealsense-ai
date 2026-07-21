@@ -78,33 +78,30 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     // Load related documents
-    let sources = await ProductSource.find({ productId: id });
+    const sources = await ProductSource.find({ productId: id });
     
-    // Stale prices TTL check: if any SerpAPI-derived source is older than TTL, mark it failed/expired
+    // Apply freshness check dynamically in memory (WITHOUT database writes)
     const serpApiTtlHours = Number(process.env.SERPAPI_PRICE_TTL_HOURS || '24');
     const now = new Date();
-    let sourcesUpdated = false;
-
-    for (let i = 0; i < sources.length; i++) {
-      const source = sources[i];
-      if (source.dataSource === 'serpapi' && source.active && source.lastChecked) {
-        const diffMs = now.getTime() - new Date(source.lastChecked).getTime();
+    
+    const freshSources = sources.map(s => {
+      if (s.dataSource === 'serpapi' && s.active && s.lastChecked) {
+        const diffMs = now.getTime() - new Date(s.lastChecked).getTime();
         const diffHours = diffMs / (1000 * 60 * 60);
         if (diffHours > serpApiTtlHours) {
-          source.active = false;
-          source.status = 'Failed';
-          source.currentPrice = undefined;
-          source.availability = 'Unavailable';
-          source.failureReason = 'Price expired (TTL)';
-          await source.save();
-          sourcesUpdated = true;
+          const sObj = s.toObject ? s.toObject() : { ...s };
+          return {
+            ...sObj,
+            active: false,
+            status: 'Failed',
+            currentPrice: undefined,
+            availability: 'Unavailable',
+            failureReason: 'Price expired (TTL)'
+          };
         }
       }
-    }
-
-    if (sourcesUpdated) {
-      sources = await ProductSource.find({ productId: id });
-    }
+      return s;
+    });
     
     // Sort PriceHistory by timestamp ascending to ensure chronological order
     const history = await PriceHistory.find({ productId: id }).sort({ timestamp: 1 });
@@ -146,7 +143,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     });
 
     // Compute live verified best deal using getVerifiedBestDeal
-    const deal = getVerifiedBestDeal(sources.map(s => ({
+    const deal = getVerifiedBestDeal(freshSources.map(s => ({
       storeName: s.platform,
       price: s.currentPrice,
       originalPrice: s.originalPrice,
@@ -154,7 +151,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       availability: s.availability,
       inStock: s.availability === 'In Stock',
       status: s.status,
-      lastChecked: s.lastChecked
+      lastChecked: s.lastChecked,
+      dataSource: s.dataSource
     })));
 
     const currentBestPrice = deal.bestPrice;
@@ -284,7 +282,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       };
     }
 
-    await doc.save();
+    // Do not write Product updates to the database during read-only GET page loads.
+    // Stale/expired state is dynamically computed in-memory, and background crons handle database synchronization.
 
     const isBuyRecommendation = (dec?: string) => dec === 'STRONG BUY' || dec === 'BUY NOW' || dec === 'STRONG_BUY' || dec === 'BUY_NOW';
     if (isBuyRecommendation(doc.aiRecommendation?.decision) && !isBuyRecommendation(prevDecision)) {
@@ -305,7 +304,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       lowestRecordedPrice,
       highestRecordedPrice,
       priceTrend: trendVal,
-      prices: sources.map((s) => ({
+      prices: freshSources.map((s) => ({
         storeName: s.platform,
         price: s.currentPrice,
         originalPrice: s.originalPrice,

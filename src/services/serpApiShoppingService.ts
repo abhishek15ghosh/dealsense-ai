@@ -1,6 +1,7 @@
 import dbConnect from '@/lib/mongodb';
 import Product from '@/models/Product';
 import ProductSource from '@/models/ProductSource';
+import SystemStatus from '@/models/SystemStatus';
 import { getVerifiedBestDeal } from '@/lib/priceUtils';
 
 interface SerpApiStore {
@@ -10,6 +11,53 @@ interface SerpApiStore {
   price: string;
   extracted_price: number;
   details?: string;
+}
+
+export async function checkAndIncrementSerpApiQuota(count: number = 1): Promise<{ allowed: boolean; remaining: number; error?: string }> {
+  try {
+    const currentMonth = new Date().toISOString().substring(0, 7); // e.g. "2026-07"
+    let status = await SystemStatus.findOne();
+    if (!status) {
+      status = new SystemStatus({
+        lastRunAt: new Date(),
+        nextRunAt: new Date(),
+        alertsChecked: 0,
+        alertsTriggered: 0,
+        emailsSent: 0,
+        errorLogs: [],
+        serpApiSearchCountThisMonth: 0,
+        serpApiResetMonth: currentMonth
+      });
+    }
+
+    if (status.serpApiResetMonth !== currentMonth) {
+      status.serpApiSearchCountThisMonth = 0;
+      status.serpApiResetMonth = currentMonth;
+    }
+
+    const currentCount = status.serpApiSearchCountThisMonth || 0;
+    const monthlyLimit = 180;
+
+    if (currentCount + count > monthlyLimit) {
+      const remaining = Math.max(0, monthlyLimit - currentCount);
+      return {
+        allowed: false,
+        remaining,
+        error: `SerpAPI Monthly Quota Limit Reached. Remaining: ${remaining}, Requested: ${count}. Limit: ${monthlyLimit}`
+      };
+    }
+
+    status.serpApiSearchCountThisMonth = currentCount + count;
+    await status.save();
+
+    return {
+      allowed: true,
+      remaining: monthlyLimit - status.serpApiSearchCountThisMonth
+    };
+  } catch (err) {
+    console.error('[SerpAPI Quota] Error checking/incrementing SerpAPI quota:', err);
+    return { allowed: true, remaining: 0 };
+  }
 }
 
 export async function refreshProductPricesWithSerpApi(productId: string): Promise<{ success: boolean; error?: string; count?: number }> {
@@ -40,6 +88,13 @@ export async function refreshProductPricesWithSerpApi(productId: string): Promis
       );
     } else {
       queries.push(canonicalName);
+    }
+
+    // Check and reserve quota for initial shopping queries
+    const initialQuotaCheck = await checkAndIncrementSerpApiQuota(queries.length);
+    if (!initialQuotaCheck.allowed) {
+      console.warn(`[SerpAPI Refresh] Quota check failed: ${initialQuotaCheck.error}`);
+      return { success: false, error: initialQuotaCheck.error || 'SerpAPI quota limit reached' };
     }
 
     const allShoppingResults: any[] = [];
@@ -87,7 +142,7 @@ export async function refreshProductPricesWithSerpApi(productId: string): Promis
       // Collect immersive page tokens for items that match brand/model keywords
       const titleLower = (item.title || '').toLowerCase();
       const isMatch = productId === 'samsung-galaxy-s24-ultra'
-        ? (titleLower.includes('samsung') && (titleLower.includes('s24 ultra') || titleLower.includes('s24ultra') || titleLower.includes('s24-ultra') || titleLower.includes('sm-s928')))
+        ? (titleLower.includes('samsung') && (titleLower.includes('s24') || titleLower.includes('sm-s928')))
         : (titleLower.includes('sony') && (titleLower.includes('wh-1000xm5') || titleLower.replace(/-/g, '').includes('wh1000xm5')));
 
       if (isMatch && item.immersive_product_page_token) {
@@ -113,6 +168,13 @@ export async function refreshProductPricesWithSerpApi(productId: string): Promis
     // 4. Fetch stores from Google Immersive Product for each matched token
     for (const token of uniqueTokens) {
       try {
+        // Reserve quota for 1 immersive token search call
+        const tokenQuotaCheck = await checkAndIncrementSerpApiQuota(1);
+        if (!tokenQuotaCheck.allowed) {
+          console.warn(`[SerpAPI Refresh] Skipping immersive token: ${tokenQuotaCheck.error}`);
+          continue;
+        }
+
         const immersiveUrl = new URL('https://serpapi.com/search.json');
         immersiveUrl.searchParams.append('engine', 'google_immersive_product');
         immersiveUrl.searchParams.append('page_token', token);

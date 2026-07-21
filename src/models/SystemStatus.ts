@@ -7,6 +7,8 @@ export interface ISystemStatus extends Document {
   alertsTriggered: number;
   emailsSent: number;
   errorLogs: string[];
+  serpApiSearchCountThisMonth?: number;
+  serpApiResetMonth?: string;
 }
 
 const SystemStatusSchema = new Schema<ISystemStatus>({
@@ -15,7 +17,9 @@ const SystemStatusSchema = new Schema<ISystemStatus>({
   alertsChecked: { type: Number, default: 0 },
   alertsTriggered: { type: Number, default: 0 },
   emailsSent: { type: Number, default: 0 },
-  errorLogs: { type: [String], default: [] }
+  errorLogs: { type: [String], default: [] },
+  serpApiSearchCountThisMonth: { type: Number, default: 0 },
+  serpApiResetMonth: { type: String, default: "" }
 });
 
 export default mongoose.models.SystemStatus || mongoose.model<ISystemStatus>('SystemStatus', SystemStatusSchema);

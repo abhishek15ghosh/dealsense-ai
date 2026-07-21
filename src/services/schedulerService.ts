@@ -15,6 +15,16 @@ export async function runScheduledPriceCheck(): Promise<TrackingStats> {
   try {
     await dbConnect();
     
+    // Deactivate stale SerpAPI prices in the database background
+    try {
+      const expiredCount = await expireStaleSerpApiPrices();
+      if (expiredCount > 0) {
+        console.log(`[Scheduler] Expired ${expiredCount} stale SerpAPI price rows in background cleanup.`);
+      }
+    } catch (err) {
+      console.error('[Scheduler] Failed to run SerpAPI price expiry:', err);
+    }
+    
     // Execute the core product price tracking scan and alert evaluation
     const stats = await trackProductPrices();
     
@@ -131,6 +141,13 @@ export async function runScheduledSerpApiCheck(): Promise<{ success: boolean; re
   try {
     await dbConnect();
     
+    // Deactivate stale SerpAPI prices first
+    try {
+      await expireStaleSerpApiPrices();
+    } catch (err) {
+      console.error('[Scheduler] Failed to run SerpAPI price expiry before update:', err);
+    }
+    
     // 1. Get all watchlisted product customIds
     const Watchlist = (await import('@/models/Watchlist')).default;
     const watchlistedProductIds = await Watchlist.find().distinct('productId');
@@ -213,4 +230,69 @@ export function initScheduler(): void {
   if (schedulerTimer && typeof schedulerTimer.unref === 'function') {
     schedulerTimer.unref();
   }
+}
+
+export async function expireStaleSerpApiPrices(): Promise<number> {
+  const ProductSource = (await import('@/models/ProductSource')).default;
+  const Product = (await import('@/models/Product')).default;
+  const { getVerifiedBestDeal } = await import('@/lib/priceUtils');
+
+  const ttlHours = Number(process.env.SERPAPI_PRICE_TTL_HOURS || '24');
+  const expiredCutoff = new Date(Date.now() - ttlHours * 60 * 60 * 1000);
+
+  // Find all active serpapi sources that have expired
+  const expiredSources = await ProductSource.find({
+    dataSource: 'serpapi',
+    active: true,
+    lastChecked: { $lt: expiredCutoff }
+  });
+
+  if (expiredSources.length === 0) {
+    return 0;
+  }
+
+  console.log(`[Scheduler] Found ${expiredSources.length} expired SerpAPI source rows. Processing...`);
+
+  // Deactivate expired sources in the database
+  const productIdsToUpdate = Array.from(new Set(expiredSources.map(s => s.productId)));
+
+  await ProductSource.updateMany(
+    {
+      dataSource: 'serpapi',
+      active: true,
+      lastChecked: { $lt: expiredCutoff }
+    },
+    {
+      active: false,
+      status: 'Failed',
+      currentPrice: undefined,
+      availability: 'Unavailable',
+      failureReason: 'Price expired (TTL)'
+    }
+  );
+
+  // Recalculate best deals for affected products and save to Product collection
+  for (const productId of productIdsToUpdate) {
+    const freshSources = await ProductSource.find({ productId });
+    const product = await Product.findOne({ customId: productId });
+    if (product) {
+      const deal = getVerifiedBestDeal(freshSources.map(s => ({
+        storeName: s.platform,
+        price: s.currentPrice,
+        originalPrice: s.originalPrice,
+        url: s.productUrl,
+        availability: s.availability,
+        inStock: s.availability === 'In Stock',
+        status: s.status,
+        lastChecked: s.lastChecked,
+        dataSource: s.dataSource
+      })));
+
+      product.bestDealPrice = deal.bestPrice;
+      product.bestDealStore = deal.bestStore;
+      await product.save();
+    }
+  }
+
+  return expiredSources.length;
 }
