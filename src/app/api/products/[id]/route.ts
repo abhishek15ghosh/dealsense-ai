@@ -78,7 +78,33 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     // Load related documents
-    const sources = await ProductSource.find({ productId: id });
+    let sources = await ProductSource.find({ productId: id });
+    
+    // Stale prices TTL check: if any SerpAPI-derived source is older than TTL, mark it failed/expired
+    const serpApiTtlHours = Number(process.env.SERPAPI_PRICE_TTL_HOURS || '24');
+    const now = new Date();
+    let sourcesUpdated = false;
+
+    for (let i = 0; i < sources.length; i++) {
+      const source = sources[i];
+      if (source.dataSource === 'serpapi' && source.active && source.lastChecked) {
+        const diffMs = now.getTime() - new Date(source.lastChecked).getTime();
+        const diffHours = diffMs / (1000 * 60 * 60);
+        if (diffHours > serpApiTtlHours) {
+          source.active = false;
+          source.status = 'Failed';
+          source.currentPrice = undefined;
+          source.availability = 'Unavailable';
+          source.failureReason = 'Price expired (TTL)';
+          await source.save();
+          sourcesUpdated = true;
+        }
+      }
+    }
+
+    if (sourcesUpdated) {
+      sources = await ProductSource.find({ productId: id });
+    }
     
     // Sort PriceHistory by timestamp ascending to ensure chronological order
     const history = await PriceHistory.find({ productId: id }).sort({ timestamp: 1 });

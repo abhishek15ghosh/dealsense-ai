@@ -424,8 +424,10 @@ function evaluateOffer(
       }
     }
 
-    // 4. Refurbished/Used Check
-    const refurbishedKws = ['refurbished', 'renewed', 'used', 'pre-owned', 'second hand', 'unboxed', 'copy', 'replica', 'clone', 'first copy', '1st copy', 'korea', 'korean'];
+    // 4. Refurbished/Used/Open Box/Imported Checks
+    const refurbKws = ['refurbished', 'renewed', 'used', 'pre-owned', 'second hand', 'unboxed', 'first copy', '1st copy'];
+    const openBoxKws = ['open box', 'openbox', 'open-box'];
+    const importedKws = ['imported', 'international version', 'international model', 'middle east version', 'us version', 'global version', 'copy', 'replica', 'clone', 'korea', 'korean'];
     
     // Check if retailer is cliktodeal (imported/grey-market reason)
     if (sourceLower.includes('cliktodeal') || linkLower.includes('cliktodeal')) {
@@ -437,10 +439,21 @@ function evaluateOffer(
       return { valid: false, reason: 'Exact colour, condition and official Indian warranty could not be verified.' };
     }
 
-    // General Refurbished Check
-    for (const ref of refurbishedKws) {
-      if (titleLower.includes(ref)) {
-        return { valid: false, reason: 'refurbished/used explicitly stated' };
+    for (const ref of refurbKws) {
+      if (titleLower.includes(ref) || detailsLower.includes(ref)) {
+        return { valid: false, reason: 'refurbished explicitly stated' };
+      }
+    }
+
+    for (const op of openBoxKws) {
+      if (titleLower.includes(op) || detailsLower.includes(op)) {
+        return { valid: false, reason: 'open-box explicitly stated' };
+      }
+    }
+
+    for (const imp of importedKws) {
+      if (titleLower.includes(imp) || detailsLower.includes(imp)) {
+        return { valid: false, reason: 'imported status could not be verified' };
       }
     }
 
@@ -448,13 +461,14 @@ function evaluateOffer(
     const greyColors = ['gray', 'grey'];
     const otherColors = ['black', 'yellow', 'violet', 'amber', 'blue', 'green', 'orange'];
     
+    const hasOtherColor = otherColors.some(c => titleLower.includes(c));
+    if (hasOtherColor) {
+      return { valid: false, reason: 'wrong colour' };
+    }
+    
     const hasGrey = greyColors.some(c => titleLower.includes(c));
     if (!hasGrey) {
-      const hasOther = otherColors.some(c => titleLower.includes(c));
-      if (hasOther) {
-        return { valid: false, reason: 'wrong colour' };
-      }
-      return { valid: false, reason: 'wrong colour' };
+      return { valid: false, reason: 'exact colour could not be verified' };
     }
 
     // 6. Normal Product Price Check: no EMI/exchange/bank effective price
@@ -462,25 +476,35 @@ function evaluateOffer(
       return { valid: false, reason: 'price unavailable' };
     }
 
-    // 7. Warranty and Condition (Evidence-Based Validation)
-    const establishedRetailers = [
-      'amazon', 'flipkart', 'croma', 'reliance digital', 'samsung', 
-      'vijay sales', 'jiomart', 'ajio', 'tata cliq', 'tata neu', 'mobile express'
-    ];
+    // 7. Warranty and Condition (Evidence-Based Validation using Metadata Reputation)
+    const TRUSTED_RETAILERS_METADATA: Record<string, { trusted: boolean; name: string }> = {
+      'amazon': { trusted: true, name: 'Amazon' },
+      'flipkart': { trusted: true, name: 'Flipkart' },
+      'croma': { trusted: true, name: 'Croma' },
+      'reliance digital': { trusted: true, name: 'Reliance Digital' },
+      'samsung': { trusted: true, name: 'Samsung' },
+      'vijay sales': { trusted: true, name: 'Vijay Sales' },
+      'jiomart': { trusted: true, name: 'JioMart' },
+      'ajio': { trusted: true, name: 'AJIO' },
+      'tata cliq': { trusted: true, name: 'Tata CLiQ' },
+      'tata neu': { trusted: true, name: 'Tata Neu' },
+      'mobile express': { trusted: true, name: 'Mobile Express' }
+    };
     
-    const isEstablished = establishedRetailers.some(r => 
-      sourceLower.includes(r) || r.includes(sourceLower)
+    const matchedRep = Object.entries(TRUSTED_RETAILERS_METADATA).find(([key]) => 
+      sourceLower.includes(key) || key.includes(sourceLower)
     );
+    const isTrusted = matchedRep ? matchedRep[1].trusted : false;
 
-    if (!isEstablished) {
+    if (!isTrusted) {
       const statesNew = titleLower.includes('new') || titleLower.includes('sealed') || detailsLower.includes('new') || detailsLower.includes('sealed') || detailsLower.includes('brand new');
       const statesWarranty = titleLower.includes('warranty') || detailsLower.includes('warranty') || titleLower.includes('manufacturer') || detailsLower.includes('manufacturer');
       
       if (!statesNew) {
-        return { valid: false, reason: 'condition unknown' };
+        return { valid: false, reason: 'condition could not be verified' };
       }
       if (!statesWarranty) {
-        return { valid: false, reason: 'warranty unknown' };
+        return { valid: false, reason: 'official warranty could not be verified' };
       }
     }
 

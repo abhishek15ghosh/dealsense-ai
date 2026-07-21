@@ -123,6 +123,68 @@ export async function runScheduledPriceCheck(): Promise<TrackingStats> {
   }
 }
 
+export async function runScheduledSerpApiCheck(): Promise<{ success: boolean; refreshed: string[]; errors: string[] }> {
+  console.log('[Scheduler] Initiating scheduled SerpAPI price checking scan...');
+  const refreshed: string[] = [];
+  const errors: string[] = [];
+  
+  try {
+    await dbConnect();
+    
+    // 1. Get all watchlisted product customIds
+    const Watchlist = (await import('@/models/Watchlist')).default;
+    const watchlistedProductIds = await Watchlist.find().distinct('productId');
+    if (watchlistedProductIds.length === 0) {
+      console.log('[Scheduler] No watchlisted products. Skipping SerpAPI check.');
+      return { success: true, refreshed, errors };
+    }
+    
+    // 2. Identify products that have SerpAPI sources
+    const ProductSource = (await import('@/models/ProductSource')).default;
+    const serpApiProductIds = await ProductSource.find({
+      productId: { $in: watchlistedProductIds },
+      dataSource: 'serpapi'
+    }).distinct('productId');
+    
+    if (serpApiProductIds.length === 0) {
+      console.log('[Scheduler] No watchlisted SerpAPI products found.');
+      return { success: true, refreshed, errors };
+    }
+    
+    // 3. For each product, check if it needs refresh (e.g. older than 12 hours)
+    // And limit to at most 1 query per run to respect quota strictly.
+    const SERPAPI_MIN_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 hours
+    const now = Date.now();
+    
+    const { refreshProductPricesWithSerpApi } = await import('@/services/serpApiShoppingService');
+    
+    for (const productId of serpApiProductIds) {
+      const sources = await ProductSource.find({ productId, dataSource: 'serpapi' });
+      const lastCheckedTimes = sources.map(s => s.lastChecked ? new Date(s.lastChecked).getTime() : 0);
+      const oldestCheck = lastCheckedTimes.length > 0 ? Math.min(...lastCheckedTimes) : 0;
+      
+      if (now - oldestCheck >= SERPAPI_MIN_CHECK_INTERVAL_MS) {
+        console.log(`[Scheduler] Product "${productId}" SerpAPI price check is stale. Refreshing...`);
+        const res = await refreshProductPricesWithSerpApi(productId);
+        if (res.success) {
+          refreshed.push(productId);
+        } else {
+          errors.push(`Failed to refresh ${productId}: ${res.error}`);
+        }
+        
+        // Limit to at most 1 product update per scheduled run to respect quota
+        break; 
+      }
+    }
+    
+    return { success: true, refreshed, errors };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('[Scheduler] Scheduled SerpAPI check failed:', error);
+    return { success: false, refreshed, errors: [msg] };
+  }
+}
+
 export function initScheduler(): void {
   if (isSchedulerInitialized) {
     return;
